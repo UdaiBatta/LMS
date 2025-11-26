@@ -502,3 +502,5 @@ def user_course_list(request):
 
     # For other users
     return render(request, "course/user_course_list.html")
+
+

@@ -25,6 +25,7 @@
 		{% url 'add_score' as ascore %} {% url 'grade_results' as vr %}{% url 'ass_results' as ar %}
 		{% url 'course_registration' as cr %} {% url 'edit_profile' as ep %} {% url 'change_password' as cp %}
 		{% url 'quiz_progress' as qpr %} {% url 'quiz_marking' as qce %} {% url 'user_course_list' as ucl %}
+		{% url 'quiz_dashboard' as qdb %}
 		{% url 'admin_panel' as admin_p %}
 		
 
@@ -67,6 +68,9 @@
 			{% endif %}
 
 			{% if request.user.is_superuser or request.user.is_lecturer %}
+			<li class="{% if request.path == qdb %}active{% endif %}">
+				<a href="{% url 'quiz_dashboard' %}"><i class="fas fa-chart-bar"></i>{% trans 'Quiz Dashboard' %}</a>
+			</li>
 			<li class="{% if request.path == qce %}active{% endif %}">
 				<a href="{% url 'quiz_marking' %}"><i class="fas fa-check-double"></i>{% trans 'Complete Exams' %}</a>
 			</li>

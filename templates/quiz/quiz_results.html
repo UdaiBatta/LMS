@@ -1,0 +1,293 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load static %}
+{% block title %}{% trans "Quiz Results" %}: {{ quiz.title }} | Learning management system{% endblock title %}
+
+{% block content %}
+<div class="container-fluid">
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'quiz_dashboard' %}">{% trans 'Quiz Dashboard' %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans 'Quiz Results' %}</li>
+        </ol>
+    </nav>
+
+    <!-- Quiz Header -->
+    <div class="row mb-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between align-items-start">
+                        <div>
+                            <h3 class="card-title">{{ quiz.title }}</h3>
+                            <p class="text-muted mb-2">{{ quiz.description }}</p>
+                            <div class="d-flex gap-3">
+                                <span class="badge bg-primary">{{ quiz.get_category_display }}</span>
+                                <span class="badge bg-secondary">{{ quiz.get_questions.count }} {% trans "Questions" %}</span>
+                                <span class="badge bg-info">{% trans "Pass Mark" %}: {{ quiz.pass_mark }}%</span>
+                            </div>
+                        </div>
+                        <div class="text-end">
+                            <a href="{% url 'quiz_update' quiz.course.slug quiz.pk %}" class="btn btn-outline-primary">
+                                <i class="fas fa-edit"></i> {% trans "Edit Quiz" %}
+                            </a>
+                            <a href="{% url 'quiz_index' quiz.course.slug %}" class="btn btn-outline-secondary">
+                                <i class="fas fa-arrow-left"></i> {% trans "Back to Quiz List" %}
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Statistics Cards -->
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h4 class="text-primary">{{ total_attempts }}</h4>
+                    <p class="card-text">{% trans "Total Attempts" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h4 class="text-success">{{ pass_rate }}%</h4>
+                    <p class="card-text">{% trans "Pass Rate" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h4 class="text-info">{{ avg_score }}%</h4>
+                    <p class="card-text">{% trans "Average Score" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <h4 class="text-warning">{{ max_score }}%</h4>
+                    <p class="card-text">{% trans "Highest Score" %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row">
+        <!-- Question Analysis -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Question Analysis" %}</h5>
+                </div>
+                <div class="card-body">
+                    {% for stat in question_stats %}
+                    <div class="mb-3">
+                        <div class="d-flex justify-content-between align-items-start mb-2">
+                            <span class="fw-bold text-truncate" style="max-width: 300px;">
+                                {{ stat.question.content|truncatechars:50 }}
+                            </span>
+                            <span class="badge 
+                                {% if stat.difficulty == 'Easy' %}bg-success
+                                {% elif stat.difficulty == 'Medium' %}bg-warning
+                                {% else %}bg-danger{% endif %}">
+                                {{ stat.difficulty }}
+                            </span>
+                        </div>
+                        <div class="progress" style="height: 20px;">
+                            <div class="progress-bar 
+                                {% if stat.correct_percentage > 80 %}bg-success
+                                {% elif stat.correct_percentage > 60 %}bg-warning
+                                {% else %}bg-danger{% endif %}"
+                                 style="width: {{ stat.correct_percentage }}%">
+                                {{ stat.correct_percentage|floatformat:0 }}%
+                            </div>
+                        </div>
+                        <small class="text-muted">{% trans "Correct answers" %}: {{ stat.correct_percentage|floatformat:0 }}%</small>
+                    </div>
+                    {% empty %}
+                    <p class="text-muted text-center">{% trans "No question analysis available" %}</p>
+                    {% endfor %}
+                </div>
+            </div>
+        </div>
+
+        <!-- Student Attempts -->
+        <div class="col-md-6">
+            <div class="card">
+                <div class="card-header d-flex justify-content-between">
+                    <h5 class="mb-0">{% trans "Student Attempts" %}</h5>
+                    <button class="btn btn-sm btn-outline-primary" onclick="exportToCSV()">
+                        <i class="fas fa-download"></i> {% trans "Export" %}
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive" style="max-height: 400px; overflow-y: auto;">
+                        <table class="table table-sm table-striped">
+                            <thead class="table-dark">
+                                <tr>
+                                    <th>{% trans "Student" %}</th>
+                                    <th>{% trans "Score" %}</th>
+                                    <th>{% trans "Status" %}</th>
+                                    <th>{% trans "Date" %}</th>
+                                    <th>{% trans "Actions" %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for sitting in sittings %}
+                                <tr>
+                                    <td>
+                                        <div class="d-flex align-items-center">
+                                            <img src="{{ sitting.user.picture.url }}" alt="Avatar" 
+                                                 class="rounded-circle me-2" width="25" height="25">
+                                            <span>{{ sitting.user.get_full_name|default:sitting.user.username }}</span>
+                                        </div>
+                                    </td>
+                                    <td>
+                                        <span class="fw-bold">{{ sitting.get_percent_correct }}%</span>
+                                        <small class="text-muted">({{ sitting.current_score }}/{{ sitting.get_max_score }})</small>
+                                    </td>
+                                    <td>
+                                        {% if sitting.check_if_passed %}
+                                            <span class="badge bg-success">{% trans "Passed" %}</span>
+                                        {% else %}
+                                            <span class="badge bg-danger">{% trans "Failed" %}</span>
+                                        {% endif %}
+                                    </td>
+                                    <td>
+                                        <small>{{ sitting.end|date:"M d, H:i" }}</small>
+                                    </td>
+                                    <td>
+                                        <a href="{% url 'quiz_marking_detail' sitting.pk %}" 
+                                           class="btn btn-outline-primary btn-sm">
+                                            <i class="fas fa-eye"></i>
+                                        </a>
+                                    </td>
+                                </tr>
+                                {% empty %}
+                                <tr>
+                                    <td colspan="5" class="text-center text-muted">{% trans "No attempts yet" %}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Score Distribution Chart -->
+    {% if total_attempts > 0 %}
+    <div class="row mt-4">
+        <div class="col-12">
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="mb-0">{% trans "Score Distribution" %}</h5>
+                </div>
+                <div class="card-body">
+                    <canvas id="scoreChart" width="400" height="100"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+<script>
+{% if total_attempts > 0 %}
+// Score Distribution Chart
+const ctx = document.getElementById('scoreChart').getContext('2d');
+const scoreData = [
+    {% for sitting in sittings %}
+    {{ sitting.get_percent_correct }},
+    {% endfor %}
+];
+
+// Create score ranges
+const ranges = ['0-20%', '21-40%', '41-60%', '61-80%', '81-100%'];
+const rangeCounts = [0, 0, 0, 0, 0];
+
+scoreData.forEach(score => {
+    if (score <= 20) rangeCounts[0]++;
+    else if (score <= 40) rangeCounts[1]++;
+    else if (score <= 60) rangeCounts[2]++;
+    else if (score <= 80) rangeCounts[3]++;
+    else rangeCounts[4]++;
+});
+
+new Chart(ctx, {
+    type: 'bar',
+    data: {
+        labels: ranges,
+        datasets: [{
+            label: '{% trans "Number of Students" %}',
+            data: rangeCounts,
+            backgroundColor: [
+                'rgba(220, 53, 69, 0.8)',
+                'rgba(253, 126, 20, 0.8)',
+                'rgba(255, 193, 7, 0.8)',
+                'rgba(25, 135, 84, 0.8)',
+                'rgba(13, 110, 253, 0.8)'
+            ],
+            borderColor: [
+                'rgb(220, 53, 69)',
+                'rgb(253, 126, 20)',
+                'rgb(255, 193, 7)',
+                'rgb(25, 135, 84)',
+                'rgb(13, 110, 253)'
+            ],
+            borderWidth: 1
+        }]
+    },
+    options: {
+        responsive: true,
+        plugins: {
+            legend: {
+                display: false
+            }
+        },
+        scales: {
+            y: {
+                beginAtZero: true,
+                ticks: {
+                    stepSize: 1
+                }
+            }
+        }
+    }
+});
+{% endif %}
+
+function exportToCSV() {
+    // Create CSV content
+    let csvContent = "Student Name,Score,Percentage,Status,Date\n";
+    
+    {% for sitting in sittings %}
+    csvContent += "{{ sitting.user.get_full_name|default:sitting.user.username }},";
+    csvContent += "{{ sitting.current_score }}/{{ sitting.get_max_score }},";
+    csvContent += "{{ sitting.get_percent_correct }}%,";
+    csvContent += "{% if sitting.check_if_passed %}Passed{% else %}Failed{% endif %},";
+    csvContent += "{{ sitting.end|date:'Y-m-d H:i' }}\n";
+    {% endfor %}
+    
+    // Download CSV
+    const blob = new Blob([csvContent], { type: 'text/csv' });
+    const url = window.URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = '{{ quiz.title|slugify }}_results.csv';
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    window.URL.revokeObjectURL(url);
+}
+</script>
+
+{% endblock %}

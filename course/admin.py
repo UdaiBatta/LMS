@@ -15,3 +15,5 @@ admin.site.register(Program, ProgramAdmin)
 admin.site.register(Course, CourseAdmin)
 admin.site.register(CourseAllocation)
 admin.site.register(Upload, UploadAdmin)
+
+

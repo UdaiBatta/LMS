@@ -2,6 +2,10 @@ from django.urls import path
 from . import views
 
 urlpatterns = [
+    # Quiz Dashboard (new)
+    path("dashboard/", views.QuizDashboardView.as_view(), name="quiz_dashboard"),
+    
+    # Existing URLs
     path("<slug>/quizzes/", views.quiz_list, name="quiz_index"),
     path("progress/", view=views.QuizUserProgressView.as_view(), name="quiz_progress"),
     # path('marking/<int:pk>/', view=QuizMarkingList.as_view(), name='quiz_marking'),
@@ -11,6 +15,11 @@ urlpatterns = [
         view=views.QuizMarkingDetail.as_view(),
         name="quiz_marking_detail",
     ),
+    
+    # Quiz Results Analysis (new)
+    path("results/<int:pk>/", views.QuizResultsView.as_view(), name="quiz_results"),
+    
+    # Quiz taking and management
     path("<int:pk>/<slug>/take/", view=views.QuizTake.as_view(), name="quiz_take"),
     path("<slug>/quiz_add/", views.QuizCreateView.as_view(), name="quiz_create"),
     path("<slug>/<int:pk>/add/", views.QuizUpdateView.as_view(), name="quiz_update"),

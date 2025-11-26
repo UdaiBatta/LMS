@@ -1,0 +1,360 @@
+{% load static %}
+{% load i18n %}
+
+<!-- Session Timeout Modal/Command Panel -->
+<div class="modal fade" id="sessionTimeoutModal" tabindex="-1" aria-labelledby="sessionTimeoutModalLabel" aria-hidden="true" 
+     data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-warning">
+            <div class="modal-header bg-warning text-dark">
+                <h5 class="modal-title" id="sessionTimeoutModalLabel">
+                    <i class="fas fa-exclamation-triangle me-2"></i>{% trans "Session Timeout Warning" %}
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-clock fa-3x text-warning mb-3"></i>
+                    <h6>{% trans "Your session will expire in:" %}</h6>
+                    <div id="countdown-timer" class="display-4 text-danger fw-bold mb-3">2:00</div>
+                    <p class="text-muted">
+                        {% trans "You will be automatically logged out for security reasons. Click 'Extend Session' to continue working." %}
+                    </p>
+                </div>
+                
+                <!-- Progress Bar -->
+                <div class="progress mb-3" style="height: 10px;">
+                    <div id="session-progress" class="progress-bar bg-warning" role="progressbar" 
+                         style="width: 100%" aria-valuenow="100" aria-valuemin="0" aria-valuemax="100">
+                    </div>
+                </div>
+                
+                <div class="d-grid gap-2 d-md-flex justify-content-md-center">
+                    <button type="button" class="btn btn-success btn-lg me-md-2" onclick="extendSession()">
+                        <i class="fas fa-refresh me-2"></i>{% trans "Extend Session" %}
+                    </button>
+                    <button type="button" class="btn btn-outline-danger btn-lg" onclick="logoutNow()">
+                        <i class="fas fa-sign-out-alt me-2"></i>{% trans "Logout Now" %}
+                    </button>
+                </div>
+                
+                <div class="mt-3">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle me-1"></i>
+                        {% trans "Auto-save is enabled. Your work is being saved automatically." %}
+                    </small>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Session Expired Modal -->
+<div class="modal fade" id="sessionExpiredModal" tabindex="-1" aria-labelledby="sessionExpiredModalLabel" aria-hidden="true" 
+     data-bs-backdrop="static" data-bs-keyboard="false">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content border-danger">
+            <div class="modal-header bg-danger text-white">
+                <h5 class="modal-title" id="sessionExpiredModalLabel">
+                    <i class="fas fa-times-circle me-2"></i>{% trans "Session Expired" %}
+                </h5>
+            </div>
+            <div class="modal-body text-center">
+                <div class="mb-3">
+                    <i class="fas fa-clock fa-3x text-danger mb-3"></i>
+                    <h6>{% trans "Your session has expired" %}</h6>
+                    <p class="text-muted">
+                        {% trans "For your security, you have been logged out due to inactivity. Please log in again to continue." %}
+                    </p>
+                </div>
+                
+                <div class="d-grid">
+                    <button type="button" class="btn btn-primary btn-lg" onclick="redirectToLogin()">
+                        <i class="fas fa-sign-in-alt me-2"></i>{% trans "Login Again" %}
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Floating Session Status Indicator -->
+<div id="session-status-float" class="position-fixed d-none" style="top: 20px; right: 20px; z-index: 9999;">
+    <div class="card border-warning shadow-lg" style="max-width: 300px;">
+        <div class="card-body p-3">
+            <div class="d-flex align-items-center">
+                <i id="float-icon" class="fas fa-clock text-warning me-2"></i>
+                <div class="flex-grow-1">
+                    <small class="text-muted">{% trans "Session expires in" %}</small>
+                    <div id="float-timer" class="fw-bold text-warning">5:00</div>
+                </div>
+                <button class="btn btn-sm btn-outline-warning" onclick="extendSession()" title="{% trans 'Extend Session' %}">
+                    <i class="fas fa-refresh"></i>
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+@keyframes pulse {
+    0% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+    100% { transform: scale(1); }
+}
+
+.session-warning {
+    animation: pulse 2s infinite;
+}
+
+#session-status-float {
+    transition: all 0.3s ease;
+}
+
+#session-status-float:hover {
+    transform: translateY(-2px);
+}
+
+@media (max-width: 768px) {
+    #session-status-float {
+        top: 10px;
+        right: 10px;
+        left: 10px;
+    }
+}
+</style>
+
+<script>
+// Session Management Variables
+let sessionWarningTime = 2 * 60; // 2 minutes before expiry (in seconds)
+let sessionTimeoutTime = 600; // Total session time (10 minutes default)
+let countdownInterval;
+let sessionInterval;
+let warningShown = false;
+
+// Initialize session monitoring
+document.addEventListener('DOMContentLoaded', function() {
+    initializeSessionMonitoring();
+});
+
+function initializeSessionMonitoring() {
+    // Check session status every 30 seconds
+    sessionInterval = setInterval(checkSessionStatus, 30000);
+    
+    // Update floating timer every minute
+    setInterval(updateFloatingTimer, 60000);
+    
+    // Show floating indicator when session has less than 5 minutes
+    setTimeout(() => {
+        document.getElementById('session-status-float').classList.remove('d-none');
+    }, (sessionTimeoutTime - 5 * 60) * 1000);
+}
+
+function checkSessionStatus() {
+    fetch('{% url "session_timeout_check" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.time_remaining <= sessionWarningTime && !warningShown) {
+            showTimeoutWarning(data.time_remaining);
+        } else if (data.time_remaining <= 0) {
+            showSessionExpired();
+        }
+        
+        updateSessionDisplay(data.time_remaining);
+    })
+    .catch(error => {
+        console.error('Session check failed:', error);
+    });
+}
+
+function showTimeoutWarning(timeRemaining) {
+    warningShown = true;
+    const modal = new bootstrap.Modal(document.getElementById('sessionTimeoutModal'));
+    modal.show();
+    
+    // Start countdown
+    startCountdown(timeRemaining);
+    
+    // Add pulsing effect to session indicator
+    document.getElementById('session-status').classList.add('session-warning');
+}
+
+function startCountdown(seconds) {
+    let remainingTime = seconds;
+    const timerElement = document.getElementById('countdown-timer');
+    const progressElement = document.getElementById('session-progress');
+    
+    countdownInterval = setInterval(() => {
+        remainingTime--;
+        
+        const minutes = Math.floor(remainingTime / 60);
+        const secs = remainingTime % 60;
+        timerElement.textContent = `${minutes}:${secs.toString().padStart(2, '0')}`;
+        
+        // Update progress bar
+        const progressPercent = (remainingTime / sessionWarningTime) * 100;
+        progressElement.style.width = progressPercent + '%';
+        
+        // Change color as time runs out
+        if (remainingTime <= 30) {
+            progressElement.classList.remove('bg-warning');
+            progressElement.classList.add('bg-danger');
+            timerElement.classList.add('text-danger');
+        }
+        
+        if (remainingTime <= 0) {
+            clearInterval(countdownInterval);
+            showSessionExpired();
+        }
+    }, 1000);
+}
+
+function showSessionExpired() {
+    // Hide warning modal if showing
+    const warningModal = bootstrap.Modal.getInstance(document.getElementById('sessionTimeoutModal'));
+    if (warningModal) {
+        warningModal.hide();
+    }
+    
+    // Show expired modal
+    const expiredModal = new bootstrap.Modal(document.getElementById('sessionExpiredModal'));
+    expiredModal.show();
+    
+    // Clear all intervals
+    clearInterval(countdownInterval);
+    clearInterval(sessionInterval);
+}
+
+function extendSession() {
+    fetch('{% url "session_timeout_check" %}', {
+        method: 'POST',
+        headers: {
+            'X-CSRFToken': '{{ csrf_token }}',
+            'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ extend: true }),
+        credentials: 'same-origin'
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            // Hide modals
+            const warningModal = bootstrap.Modal.getInstance(document.getElementById('sessionTimeoutModal'));
+            if (warningModal) {
+                warningModal.hide();
+            }
+            
+            // Reset warning state
+            warningShown = false;
+            clearInterval(countdownInterval);
+            
+            // Remove warning effects
+            document.getElementById('session-status').classList.remove('session-warning');
+            
+            // Show success message
+            showNotification('{% trans "Session extended successfully!" %}', 'success');
+        }
+    })
+    .catch(error => {
+        console.error('Failed to extend session:', error);
+        showNotification('{% trans "Failed to extend session. Please refresh the page." %}', 'danger');
+    });
+}
+
+function logoutNow() {
+    // Create a form and submit it for logout
+    const form = document.createElement('form');
+    form.method = 'POST';
+    form.action = '{% url "logout" %}';
+    
+    const csrfToken = document.createElement('input');
+    csrfToken.type = 'hidden';
+    csrfToken.name = 'csrfmiddlewaretoken';
+    csrfToken.value = '{{ csrf_token }}';
+    
+    form.appendChild(csrfToken);
+    document.body.appendChild(form);
+    form.submit();
+}
+
+function redirectToLogin() {
+    window.location.href = '{% url "login" %}';
+}
+
+function updateSessionDisplay(timeRemaining) {
+    const minutes = Math.floor(timeRemaining / 60);
+    const statusDisplay = document.getElementById('session-time-display');
+    const indicator = document.getElementById('session-indicator');
+    const floatTimer = document.getElementById('float-timer');
+    
+    if (statusDisplay) {
+        if (timeRemaining > 0) {
+            statusDisplay.textContent = `${minutes}m`;
+            
+            // Update indicator color based on time remaining
+            if (timeRemaining <= 2 * 60) { // Less than 2 minutes
+                indicator.classList.remove('text-success', 'text-warning');
+                indicator.classList.add('text-danger');
+            } else if (timeRemaining <= 5 * 60) { // Less than 5 minutes
+                indicator.classList.remove('text-success', 'text-danger');
+                indicator.classList.add('text-warning');
+            } else {
+                indicator.classList.remove('text-warning', 'text-danger');
+                indicator.classList.add('text-success');
+            }
+        } else {
+            statusDisplay.textContent = 'Expired';
+            indicator.classList.remove('text-success', 'text-warning');
+            indicator.classList.add('text-danger');
+        }
+    }
+    
+    if (floatTimer) {
+        floatTimer.textContent = `${minutes}:${(timeRemaining % 60).toString().padStart(2, '0')}`;
+    }
+}
+
+function updateFloatingTimer() {
+    // This will be updated by the main session check
+    checkSessionStatus();
+}
+
+function showNotification(message, type = 'info') {
+    // Create notification element
+    const notification = document.createElement('div');
+    notification.className = `alert alert-${type} alert-dismissible fade show position-fixed`;
+    notification.style.cssText = 'top: 80px; right: 20px; z-index: 10000; min-width: 300px;';
+    notification.innerHTML = `
+        <i class="fas fa-info-circle me-2"></i>${message}
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    `;
+    
+    document.body.appendChild(notification);
+    
+    // Auto-remove after 5 seconds
+    setTimeout(() => {
+        if (notification.parentNode) {
+            notification.parentNode.removeChild(notification);
+        }
+    }, 5000);
+}
+
+// Auto-save functionality (if forms are present)
+function autoSave() {
+    const forms = document.querySelectorAll('form[data-autosave="true"]');
+    forms.forEach(form => {
+        const formData = new FormData(form);
+        // Save to localStorage or send AJAX request
+        localStorage.setItem('autosave_' + form.id, JSON.stringify(Object.fromEntries(formData)));
+    });
+}
+
+// Auto-save every 30 seconds if forms are present
+setInterval(autoSave, 30000);
+</script>

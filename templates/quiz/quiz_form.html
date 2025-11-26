@@ -1,79 +1,269 @@
 {% extends 'base.html' %}
 {% load crispy_forms_tags %}
 {% load i18n %}
+{% load static %}
+
+{% block title %}
+{% if form.instance.pk %}{% trans "Edit Quiz" %}{% else %}{% trans "Create Quiz" %}{% endif %} | Learning management system
+{% endblock %}
 
 {% block content %}
+<div class="container-fluid">
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'quiz_dashboard' %}">{% trans 'Quiz Dashboard' %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'programs' %}">{% trans 'Programs' %}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'program_detail' course.program.id %}">{{ course.program }}</a></li>
+            <li class="breadcrumb-item"><a href="{{ course.get_absolute_url }}">{{ course }}</a></li>
+            <li class="breadcrumb-item"><a href="{% url 'quiz_index' course.slug %}">{% trans 'Quizzes' %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">
+                {% if form.instance.pk %}{% trans "Edit Quiz" %}{% else %}{% trans "Create Quiz" %}{% endif %}
+            </li>
+        </ol>
+    </nav>
 
-<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'programs' %}">{% trans 'Programs' %}</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'program_detail' course.program.id %}">{{ course.program }}</a></li>
-        <li class="breadcrumb-item"><a href="{{ course.get_absolute_url }}">{{ course }}</a></li>
-        <li class="breadcrumb-item"><a href="{% url 'quiz_index' course.slug %}">{% trans 'Quizzes' %}</a></li>
-        <li class="breadcrumb-item active" aria-current="page">{% trans 'Quiz Form' %}</li>
-    </ol>
-</nav>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">
+                <i class="fas {% if form.instance.pk %}fa-edit{% else %}fa-plus{% endif %} me-2"></i>
+                {% if form.instance.pk %}{% trans "Edit Quiz" %}{% else %}{% trans "Create Quiz" %}{% endif %}
+            </h2>
+            <p class="text-muted">{% trans "Course" %}: {{ course.title }}</p>
+        </div>
+        <a href="{% url 'quiz_index' course.slug %}" class="btn btn-outline-secondary">
+            <i class="fas fa-arrow-left"></i> {% trans "Back to Quiz List" %}
+        </a>
+    </div>
 
-<div class="title-1">{% trans 'Quiz form for' %} {{ course|truncatechars:15 }}</div>
-<br><br>
-
-<div class="container">
-
-    <form action="" method="POST">{% csrf_token %}
+    <form action="" method="POST" class="needs-validation" novalidate>
+        {% csrf_token %}
+        
         <div class="row">
+            <!-- Basic Information -->
             <div class="col-md-6">
-                <div class="card">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-info-circle me-2"></i>{% trans "Basic Information" %}</h5>
+                    </div>
                     <div class="card-body">
-                        <!-- <div class="container"> -->
-                            <div hidden>
-                                <label for="course">{{ form.course.label }}</label><br> {{ form.course }}
-                                <span class="danger">{{ form.course.errors }}</span>
-                                <span class="danger">{{ form.course.errors }}</span>
-                            </div>                    
-                            {{ form.category|as_crispy_field }}                    
+                        <div hidden>
+                            <label for="course">{{ form.course.label }}</label><br> 
+                            {{ form.course }}
+                            <span class="text-danger">{{ form.course.errors }}</span>
+                        </div>
+                        
+                        <!-- Quiz Title -->
+                        <div class="mb-3">
+                            <label for="{{ form.title.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-heading me-1"></i>{{ form.title.label }} *
+                            </label>
                             {{ form.title|as_crispy_field }}
-                            <!-- <div class="mb-2">
-                                <label for="max_questions">{{ form.max_questions.label }}</label>
-                                <input class="form-control" type="number" name="max_questions" min="0" id="id_max_questions">
-                                <span class="danger">{{ form.max_questions.errors }}</span>
-                                <small class="d-block text-muted">Number of questions to be answered on each attempt.</small>
-                            </div> -->
-                            {{ form.pass_mark|as_crispy_field }}
+                            <small class="text-muted">{% trans "Enter a descriptive title for your quiz" %}</small>
+                        </div>
+
+                        <!-- Category -->
+                        <div class="mb-3">
+                            <label for="{{ form.category.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-tag me-1"></i>{{ form.category.label }}
+                            </label>
+                            {{ form.category|as_crispy_field }}
+                        </div>
+
+                        <!-- Pass Mark -->
+                        <div class="mb-3">
+                            <label for="{{ form.pass_mark.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-percentage me-1"></i>{{ form.pass_mark.label }}
+                            </label>
+                            <div class="input-group">
+                                {{ form.pass_mark|as_crispy_field }}
+                                <span class="input-group-text">%</span>
+                            </div>
+                            <small class="text-muted">{% trans "Minimum percentage required to pass" %}</small>
+                        </div>
+
+                        <!-- Description -->
+                        <div class="mb-3">
+                            <label for="{{ form.description.id_for_label }}" class="form-label fw-bold">
+                                <i class="fas fa-align-left me-1"></i>{{ form.description.label }}
+                            </label>
                             {{ form.description|as_crispy_field }}
-                        <!-- </div> -->
+                            <small class="text-muted">{% trans "Provide additional context about this quiz" %}</small>
+                        </div>
                     </div>
                 </div>
             </div>
+
+            <!-- Quiz Settings -->
             <div class="col-md-6">
-                <div class="card">
+                <div class="card mb-4">
+                    <div class="card-header">
+                        <h5 class="mb-0"><i class="fas fa-cogs me-2"></i>{% trans "Quiz Settings" %}</h5>
+                    </div>
                     <div class="card-body">
-                        <!-- <div class="container"> -->
                         <div hidden>
-                            <label for="questions">{{ form.questions.label }}</label><br> {{ form.questions }}
-                            <span class="danger">{{ form.questions.errors }}</span>
-                            <small class="d-block text-muted">{% trans 'Hold down' %} "Control", {% trans 'or' %} "Command" {% trans 'on a Mac, to select more than one.' %}</small>
+                            <label for="questions">{{ form.questions.label }}</label><br> 
+                            {{ form.questions }}
+                            <span class="text-danger">{{ form.questions.errors }}</span>
                         </div>
-                        {{ form.random_order|as_crispy_field }}                    
-                        {{ form.answers_at_end|as_crispy_field }}                    
-                        {{ form.exam_paper|as_crispy_field }}                    
-                        {{ form.single_attempt|as_crispy_field }}                    
-                        {{ form.draft|as_crispy_field }}             
+
+                        <!-- Question Order -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                {{ form.random_order }}
+                                <label class="form-check-label fw-bold" for="{{ form.random_order.id_for_label }}">
+                                    <i class="fas fa-random me-1"></i>{{ form.random_order.label }}
+                                </label>
+                            </div>
+                            <small class="text-muted">{% trans "Randomize question order for each student" %}</small>
+                        </div>
+
+                        <!-- Answers Display -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                {{ form.answers_at_end }}
+                                <label class="form-check-label fw-bold" for="{{ form.answers_at_end.id_for_label }}">
+                                    <i class="fas fa-eye me-1"></i>{{ form.answers_at_end.label }}
+                                </label>
+                            </div>
+                            <small class="text-muted">{% trans "Show correct answers only after quiz completion" %}</small>
+                        </div>
+
+                        <!-- Exam Paper -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                {{ form.exam_paper }}
+                                <label class="form-check-label fw-bold" for="{{ form.exam_paper.id_for_label }}">
+                                    <i class="fas fa-file-alt me-1"></i>{{ form.exam_paper.label }}
+                                </label>
+                            </div>
+                            <small class="text-muted">{% trans "Store results for grading and analysis" %}</small>
+                        </div>
+
+                        <!-- Single Attempt -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                {{ form.single_attempt }}
+                                <label class="form-check-label fw-bold" for="{{ form.single_attempt.id_for_label }}">
+                                    <i class="fas fa-lock me-1"></i>{{ form.single_attempt.label }}
+                                </label>
+                            </div>
+                            <small class="text-muted">{% trans "Allow only one attempt per student" %}</small>
+                        </div>
+
+                        <!-- Draft Status -->
+                        <div class="mb-3">
+                            <div class="form-check form-switch">
+                                {{ form.draft }}
+                                <label class="form-check-label fw-bold" for="{{ form.draft.id_for_label }}">
+                                    <i class="fas fa-edit me-1"></i>{{ form.draft.label }}
+                                </label>
+                            </div>
+                            <small class="text-muted">{% trans "Save as draft (not visible to students)" %}</small>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Preview Card -->
+                <div class="card">
+                    <div class="card-header">
+                        <h6 class="mb-0"><i class="fas fa-eye me-2"></i>{% trans "Quiz Preview" %}</h6>
+                    </div>
+                    <div class="card-body">
+                        <div id="quiz-preview" class="text-muted">
+                            <p><strong>{% trans "Title" %}:</strong> <span id="preview-title">-</span></p>
+                            <p><strong>{% trans "Category" %}:</strong> <span id="preview-category">-</span></p>
+                            <p><strong>{% trans "Pass Mark" %}:</strong> <span id="preview-pass-mark">-</span>%</p>
+                            <p><strong>{% trans "Settings" %}:</strong></p>
+                            <ul id="preview-settings" class="small">
+                                <li id="preview-random" style="display: none;">{% trans "Random question order" %}</li>
+                                <li id="preview-answers-end" style="display: none;">{% trans "Answers shown at end" %}</li>
+                                <li id="preview-exam" style="display: none;">{% trans "Exam paper mode" %}</li>
+                                <li id="preview-single" style="display: none;">{% trans "Single attempt only" %}</li>
+                                <li id="preview-draft" style="display: none;">{% trans "Draft mode" %}</li>
+                            </ul>
+                        </div>
                     </div>
                 </div>
             </div>
         </div>
-        <button class="btn btn-primary my-4" id="{% if form.is_valid %}btn-transition{% endif %}" type="submit">{% trans 'Save' %} &amp; {% trans 'Continue' %}</button>
+
+        <!-- Submit Buttons -->
+        <div class="card mt-4">
+            <div class="card-body">
+                <div class="d-flex justify-content-between">
+                    <div>
+                        <button type="submit" class="btn btn-success btn-lg me-3">
+                            <i class="fas fa-save me-2"></i>
+                            {% if form.instance.pk %}
+                                {% trans "Update Quiz" %}
+                            {% else %}
+                                {% trans "Create Quiz" %} &amp; {% trans "Add Questions" %}
+                            {% endif %}
+                        </button>
+                        {% if form.instance.pk %}
+                        <a href="{% url 'mc_create' course.slug form.instance.pk %}" class="btn btn-primary btn-lg">
+                            <i class="fas fa-plus me-2"></i>{% trans "Add Questions" %}
+                        </a>
+                        {% endif %}
+                    </div>
+                    <div>
+                        <button type="button" class="btn btn-outline-secondary" onclick="history.back()">
+                            {% trans "Cancel" %}
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
     </form>
 </div>
 
-{% endblock %}
-
-{% block js %}
 <script>
-    const transitionButton = document.getElementById('btn-transition');
-    transitionButton.addEventListener('click', () => {
-        document.getElementById('card-transition').style.animation = 'card-transition 5s ease-in-out forwards';
-    })
+// Form validation
+(function() {
+    'use strict';
+    window.addEventListener('load', function() {
+        var forms = document.getElementsByClassName('needs-validation');
+        var validation = Array.prototype.filter.call(forms, function(form) {
+            form.addEventListener('submit', function(event) {
+                if (form.checkValidity() === false) {
+                    event.preventDefault();
+                    event.stopPropagation();
+                }
+                form.classList.add('was-validated');
+            }, false);
+        });
+    }, false);
+})();
+
+// Live preview
+function updatePreview() {
+    const title = document.getElementById('{{ form.title.id_for_label }}').value || '-';
+    const category = document.getElementById('{{ form.category.id_for_label }}').selectedOptions[0]?.text || '-';
+    const passMark = document.getElementById('{{ form.pass_mark.id_for_label }}').value || '-';
+    
+    document.getElementById('preview-title').textContent = title;
+    document.getElementById('preview-category').textContent = category;
+    document.getElementById('preview-pass-mark').textContent = passMark;
+    
+    // Update settings
+    const settings = ['random', 'answers-end', 'exam', 'single', 'draft'];
+    const fields = ['{{ form.random_order.id_for_label }}', '{{ form.answers_at_end.id_for_label }}', '{{ form.exam_paper.id_for_label }}', '{{ form.single_attempt.id_for_label }}', '{{ form.draft.id_for_label }}'];
+    
+    settings.forEach((setting, index) => {
+        const element = document.getElementById('preview-' + setting);
+        const field = document.getElementById(fields[index]);
+        element.style.display = field.checked ? 'list-item' : 'none';
+    });
+}
+
+// Add event listeners for live preview
+document.addEventListener('DOMContentLoaded', function() {
+    ['input', 'change', 'keyup'].forEach(event => {
+        document.addEventListener(event, updatePreview);
+    });
+    updatePreview(); // Initial call
+});
 </script>
-{% endblock js %}
+
+{% endblock %}

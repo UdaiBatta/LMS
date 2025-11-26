@@ -75,3 +75,5 @@ urlpatterns = [
     path("course/drop/", views.course_drop, name="course_drop"),
     path("my_courses/", views.user_course_list, name="user_course_list"),
 ]
+
+

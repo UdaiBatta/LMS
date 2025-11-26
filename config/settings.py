@@ -53,6 +53,7 @@ THIRD_PARTY_APPS = [
     "crispy_bootstrap5",
     "django_filters",
     "django_extensions",
+    "widget_tweaks",
 ]
 
 # Custom apps
@@ -109,12 +110,30 @@ WSGI_APPLICATION = "config.wsgi.application"
 # Database
 # https://docs.djangoproject.com/en/2.2/ref/settings/#databases
 
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+# Support both PostgreSQL (for Docker/production) and SQLite (for local development)
+DATABASE_URL = config("DATABASE_URL", default=None)
+
+if DATABASE_URL:
+    try:
+        import dj_database_url
+        DATABASES = {
+            "default": dj_database_url.parse(DATABASE_URL, conn_max_age=600)
+        }
+    except ImportError:
+        # Fallback to SQLite if dj_database_url is not installed
+        DATABASES = {
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+            }
+        }
+else:
+    DATABASES = {
+        "default": {
+            "ENGINE": "django.db.backends.sqlite3",
+            "NAME": os.path.join(BASE_DIR, "db.sqlite3"),
+        }
     }
-}
 
 # https://docs.djangoproject.com/en/stable/ref/settings/#std:setting-DEFAULT_AUTO_FIELD
 DEFAULT_AUTO_FIELD = "django.db.models.BigAutoField"
@@ -278,16 +297,4 @@ SEMESTER_CHOICES = (
     (FIRST, _("First")),
     (SECOND, _("Second")),
     (THIRD, _("Third")),
-)
-
-
-
-from django.core.mail import send_mail
-
-send_mail(
-    "Test email from SkyLearn",
-    "If you receive this, the setup works!",
-    None,  # Uses DEFAULT_FROM_EMAIL from settings.py
-    ["udbatta@gmail.com"],  # recipient (can be your own Gmail for test)
-    fail_silently=False,
 )

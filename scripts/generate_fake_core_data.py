@@ -39,7 +39,7 @@ class SessionFactory(DjangoModelFactory):
 
     @classmethod
     def _create(cls, model_class, *args, **kwargs):
-        obj, created = Session.objects.get_or_create(
+        obj, created = Session.objects.get_or_create( 
             session=kwargs["session"],
             defaults=kwargs
         )

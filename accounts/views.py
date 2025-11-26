@@ -57,10 +57,26 @@ def validate_username(request):
 def session_timeout_check(request):
     """
     AJAX endpoint to check session timeout status and return remaining time.
+    Also handles session extension.
     """
+    import json
+    
     if not request.user.is_authenticated:
         return JsonResponse({'authenticated': False})
     
+    # Handle session extension request
+    if request.method == 'POST':
+        try:
+            body = json.loads(request.body)
+            if body.get('extend'):
+                # Update last activity time
+                request.session['last_activity'] = time.time()
+                request.session.save()
+                return JsonResponse({'success': True, 'message': 'Session extended'})
+        except:
+            pass
+    
+    # Check current session status
     last_activity = request.session.get('last_activity', time.time())
     current_time = time.time()
     time_diff = current_time - last_activity
@@ -69,12 +85,17 @@ def session_timeout_check(request):
     session_timeout = getattr(settings, 'SESSION_COOKIE_AGE', 600)
     remaining_time = max(0, session_timeout - time_diff)
     
+    # Update last activity for GET requests too (to keep session alive during normal usage)
+    if request.method == 'GET':
+        request.session['last_activity'] = current_time
+    
     return JsonResponse({
         'authenticated': True,
-        'remaining_time': remaining_time,
+        'time_remaining': remaining_time,
         'total_timeout': session_timeout,
         'last_activity': last_activity,
-        'current_time': current_time
+        'current_time': current_time,
+        'success': True
     })
 
 

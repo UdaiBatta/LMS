@@ -11,6 +11,7 @@ from django.views.generic import (
     TemplateView,
     UpdateView,
 )
+from django.db.models import Avg, Count
 
 from accounts.decorators import lecturer_required
 from .forms import (
@@ -181,6 +182,7 @@ class QuizUserProgressView(TemplateView):
 class QuizMarkingList(ListView):
     model = Sitting
     template_name = "quiz/quiz_marking_list.html"
+    paginate_by = 20
 
     def get_queryset(self):
         queryset = Sitting.objects.filter(complete=True)
@@ -194,7 +196,21 @@ class QuizMarkingList(ListView):
         user_filter = self.request.GET.get("user_filter")
         if user_filter:
             queryset = queryset.filter(user__username__icontains=user_filter)
-        return queryset
+        course_filter = self.request.GET.get("course_filter")
+        if course_filter:
+            queryset = queryset.filter(course__id=course_filter)
+        return queryset.select_related('user', 'quiz', 'course').order_by('-end')
+    
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        if self.request.user.is_superuser:
+            courses = Course.objects.all()
+        else:
+            courses = Course.objects.filter(
+                allocated_course__lecturer=self.request.user
+            ).distinct()
+        context['courses'] = courses
+        return context
 
 
 @method_decorator([login_required, lecturer_required], name="dispatch")
@@ -334,3 +350,152 @@ class QuizTake(FormView):
             self.sitting.delete()
 
         return render(self.request, self.result_template_name, results)
+
+
+# ########################################################
+# Quiz Dashboard View
+# ########################################################
+
+
+@method_decorator([login_required, lecturer_required], name="dispatch")
+class QuizDashboardView(TemplateView):
+    template_name = "quiz/quiz_dashboard.html"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        user = self.request.user
+
+        # Get quizzes based on user role
+        if user.is_superuser:
+            quizzes = Quiz.objects.all()
+            user_courses = Course.objects.all()
+        else:
+            # For lecturers, get only their courses
+            user_courses = Course.objects.filter(
+                allocated_course__lecturer=user
+            ).distinct()
+            quizzes = Quiz.objects.filter(course__in=user_courses)
+
+        # Calculate statistics
+        total_quizzes = quizzes.count()
+        total_attempts = Sitting.objects.filter(
+            quiz__in=quizzes, complete=True
+        ).count()
+
+        # Calculate average score
+        completed_sittings = Sitting.objects.filter(
+            quiz__in=quizzes, complete=True
+        )
+        if completed_sittings.exists():
+            average_score = completed_sittings.aggregate(
+                avg=Avg('current_score')
+            )['avg'] or 0
+        else:
+            average_score = 0
+
+        # Recent quizzes (last 10)
+        recent_quizzes = quizzes.order_by('-timestamp')[:10]
+
+        # Top performing quizzes
+        top_quizzes = []
+        for quiz in quizzes[:5]:
+            quiz_sittings = completed_sittings.filter(quiz=quiz)
+            if quiz_sittings.exists():
+                avg_score = quiz_sittings.aggregate(
+                    avg=Avg('current_score')
+                )['avg'] or 0
+                quiz.avg_score = (avg_score / quiz.get_max_score) * 100 if quiz.get_max_score > 0 else 0
+                top_quizzes.append(quiz)
+
+        # Sort by average score
+        top_quizzes.sort(key=lambda x: x.avg_score, reverse=True)
+
+        # Recent student activity (last 15 attempts)
+        recent_attempts = completed_sittings.select_related(
+            'user', 'quiz', 'course'
+        ).order_by('-end')[:15]
+
+        context.update({
+            'total_quizzes': total_quizzes,
+            'total_attempts': total_attempts,
+            'average_score': round(average_score, 1),
+            'active_courses': user_courses.count(),
+            'recent_quizzes': recent_quizzes,
+            'top_quizzes': top_quizzes[:5],
+            'recent_attempts': recent_attempts,
+            'user_courses': user_courses,
+        })
+
+        return context
+
+
+# ########################################################
+# Quiz Results View
+# ########################################################
+
+
+@method_decorator([login_required, lecturer_required], name="dispatch")
+class QuizResultsView(DetailView):
+    model = Quiz
+    template_name = "quiz/quiz_results.html"
+    context_object_name = "quiz"
+
+    def get_context_data(self, **kwargs):
+        context = super().get_context_data(**kwargs)
+        quiz = self.get_object()
+        
+        # Get all completed attempts for this quiz
+        sittings = Sitting.objects.filter(
+            quiz=quiz, complete=True
+        ).select_related('user', 'course').order_by('-end')
+        
+        # Calculate statistics
+        total_attempts = sittings.count()
+        if total_attempts > 0:
+            passed_attempts = sittings.filter(
+                current_score__gte=quiz.pass_mark * quiz.get_max_score / 100
+            ).count()
+            pass_rate = (passed_attempts / total_attempts) * 100
+            
+            # Score distribution
+            scores = [sitting.get_percent_correct for sitting in sittings]
+            avg_score = sum(scores) / len(scores) if scores else 0
+            min_score = min(scores) if scores else 0
+            max_score = max(scores) if scores else 0
+            
+            # Question analysis
+            questions = quiz.get_questions()
+            question_stats = []
+            for question in questions:
+                correct_count = 0
+                total_count = 0
+                for sitting in sittings:
+                    if str(question.id) not in sitting.get_incorrect_questions:
+                        correct_count += 1
+                    total_count += 1
+                
+                if total_count > 0:
+                    correct_percentage = (correct_count / total_count) * 100
+                    question_stats.append({
+                        'question': question,
+                        'correct_percentage': correct_percentage,
+                        'difficulty': 'Easy' if correct_percentage > 80 else 'Medium' if correct_percentage > 60 else 'Hard'
+                    })
+        else:
+            pass_rate = 0
+            avg_score = 0
+            min_score = 0
+            max_score = 0
+            question_stats = []
+        
+        context.update({
+            'sittings': sittings,
+            'total_attempts': total_attempts,
+            'pass_rate': round(pass_rate, 1),
+            'avg_score': round(avg_score, 1),
+            'min_score': min_score,
+            'max_score': max_score,
+            'question_stats': question_stats,
+        })
+        
+        return context
