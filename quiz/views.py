@@ -1,6 +1,7 @@
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.db import transaction
+from django.core.exceptions import PermissionDenied
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views.generic import (
@@ -97,9 +98,8 @@ class QuizUpdateView(UpdateView):
 @login_required
 @lecturer_required
 def quiz_delete(request, slug, pk):
-    from django.http import HttpResponseNotAllowed
-
     if request.method != "POST":
+        from django.http import HttpResponseNotAllowed
         return HttpResponseNotAllowed(["POST"])
     quiz = get_object_or_404(
         Quiz, pk=pk, course__slug=slug, course__in=lecturer_courses(request.user)
@@ -112,15 +112,58 @@ def quiz_delete(request, slug, pk):
 @login_required
 def quiz_list(request, slug):
     course = get_object_or_404(Course, slug=slug)
-    if request.user.is_student and not student_can_access_course(
-        request.user, course, require_enrollment=True
-    ):
-        messages.error(request, "You must be registered for this course to access its quizzes.")
-        return redirect("user_course_list")
-    quizzes = Quiz.objects.filter(course=course).order_by("-timestamp")
-    return render(
-        request, "quiz/quiz_list.html", {"quizzes": quizzes, "course": course}
-    )
+    
+    # Check if student has access to this course
+    has_access = True
+    access_message = ""
+    
+    if request.user.is_student:
+        try:
+            from accounts.models import Student
+            student = Student.objects.get(student=request.user)
+            if student.program != course.program:
+                has_access = False
+                access_message = f"You don't have access to this course. You are enrolled in {student.program.title} program."
+        except Student.DoesNotExist:
+            has_access = False
+            access_message = "Student profile not found. Please contact administration."
+    
+    if has_access:
+        quizzes = Quiz.objects.filter(course=course).order_by("-timestamp")
+        
+        # For students, add quiz completion status using Sitting model
+        quiz_progress = {}
+        if request.user.is_student:
+            for quiz in quizzes:
+                # Check if user has completed this quiz
+                completed_sitting = Sitting.objects.filter(
+                    user=request.user, 
+                    quiz=quiz, 
+                    course=course,
+                    complete=True
+                ).first()
+                
+                if completed_sitting:
+                    quiz_progress[quiz.id] = {
+                        'completed': True,
+                        'score': completed_sitting.current_score,
+                        'total_questions': completed_sitting.get_max_score,
+                    }
+                else:
+                    quiz_progress[quiz.id] = {'completed': False}
+    else:
+        quizzes = Quiz.objects.none()
+        quiz_progress = {}
+        messages.error(request, access_message)
+    
+    context = {
+        "quizzes": quizzes,
+        "course": course,
+        "has_access": has_access,
+        "quiz_progress": quiz_progress,
+    }
+    
+    return render(request, "quiz/quiz_list.html", context)
 
 
 # ########################################################
@@ -198,10 +241,39 @@ class QuizUserProgressView(TemplateView):
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        progress, _ = Progress.objects.get_or_create(user=self.request.user)
-        context["cat_scores"] = progress.list_all_cat_scores
-        context["exams"] = progress.show_exams()
-        context["exams_counter"] = context["exams"].count()
+        user = self.request.user
+        
+        # Get or create progress for current user
+        progress, created = Progress.objects.get_or_create(user=user)
+        
+        # Get category scores (if the method exists and works)
+        try:
+            context["cat_scores"] = progress.list_all_cat_scores()
+        except:
+            context["cat_scores"] = {}
+        
+        # Get completed exams based on user type
+        if user.is_superuser:
+            exams = Sitting.objects.filter(complete=True).select_related('quiz', 'user', 'course').order_by('-end')
+        elif user.is_lecturer:
+            # For lecturers, show exams from their courses
+            exams = Sitting.objects.filter(
+                complete=True,
+                quiz__course__allocated_course__lecturer=user
+            ).select_related('quiz', 'user', 'course').order_by('-end')
+        else:
+            # For students, show only their own exams
+            exams = Sitting.objects.filter(
+                complete=True, 
+                user=user
+            ).select_related('quiz', 'course').order_by('-end')
+        
+        context["exams"] = exams
+        context["exams_counter"] = exams.count()
+        
+        # Add some additional context for better UI
+        context["user_role"] = user.get_user_role() if hasattr(user, 'get_user_role') else 'Student'
+        
         return context
 
 
@@ -248,7 +320,9 @@ class QuizMarkingDetail(DetailView):
     def get_queryset(self):
         queryset = Sitting.objects.filter(complete=True)
         if not self.request.user.is_superuser:
-            queryset = queryset.filter(quiz__course__in=lecturer_courses(self.request.user))
+            queryset = queryset.filter(
+                quiz__course__in=lecturer_courses(self.request.user)
+            )
         return queryset.select_related("quiz", "course", "user")
 
     def post(self, request, *args, **kwargs):
@@ -284,25 +358,41 @@ class QuizTake(FormView):
     def dispatch(self, request, *args, **kwargs):
         self.course = get_object_or_404(Course, pk=self.kwargs["pk"])
         self.quiz = get_object_or_404(Quiz, slug=self.kwargs["slug"], course=self.course)
-        if request.user.is_student and not student_can_access_course(
-            request.user, self.course, require_enrollment=True
-        ):
-            messages.error(request, "You must be registered for this course to take its quizzes.")
-            return redirect("user_course_list")
-        if request.user.is_lecturer:
+        
+        # Check student access to course
+        if request.user.is_student:
+            try:
+                from accounts.models import Student
+                student = Student.objects.get(student=request.user)
+                if not student_can_access_course(request.user, self.course, require_enrollment=True):
+                    messages.error(request, "You must be registered for this course to take its quizzes.")
+                    return redirect("user_course_list")
+            except Student.DoesNotExist:
+                messages.error(request, "Student profile not found. Please contact administration.")
+                return redirect("user_course_list")
+        elif request.user.is_lecturer:
             require_lecturer_course(request.user, self.course)
+        
+        # Check if quiz has questions
         if not Question.objects.filter(quiz=self.quiz).exists():
             messages.warning(request, "This quiz has no questions available.")
             return redirect("quiz_index", slug=self.course.slug)
 
+        # Handle quiz sitting
         self.sitting = Sitting.objects.user_sitting(
             request.user, self.quiz, self.course
         )
         if not self.sitting:
-            messages.info(
-                request,
-                "You have already completed this quiz. Only one attempt is permitted.",
-            )
+            if self.quiz.single_attempt:
+                messages.info(
+                    request,
+                    "You have already completed this quiz. Only one attempt is permitted.",
+                )
+            else:
+                messages.info(
+                    request,
+                    "You have completed this quiz. You can retake it if allowed.",
+                )
             return redirect("quiz_index", slug=self.course.slug)
 
         # Set self.question and self.progress here

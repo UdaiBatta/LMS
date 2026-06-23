@@ -1,0 +1,285 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load static %}
+
+{% block title %}{{ title }}{% endblock %}
+
+{% block content %}
+<div class="container-fluid mt-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white d-flex justify-content-between align-items-center">
+                    <h4 class="card-title mb-0">
+                        <i class="fas fa-graduation-cap me-2"></i>{{ title }}
+                    </h4>
+                    {% if program %}
+                    <span class="badge bg-light text-dark">
+                        <i class="fas fa-book me-1"></i>{{ program.title }}
+                    </span>
+                    {% endif %}
+                </div>
+                
+                <div class="card-body">
+                    {% if no_student_profile %}
+                        <div class="alert alert-danger text-center">
+                            <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+                            <h5>{% trans "Student Profile Not Found" %}</h5>
+                            <p>{% trans "Your student profile could not be found. Please contact the administrator to set up your account." %}</p>
+                        </div>
+                    {% elif no_program %}
+                        <div class="alert alert-warning text-center">
+                            <i class="fas fa-info-circle fa-2x mb-3"></i>
+                            <h5>{% trans "No Program Assigned" %}</h5>
+                            <p>{% trans "You haven't been assigned to a program yet. Please contact the administrator to enroll in a program." %}</p>
+                        </div>
+                    {% elif not courses %}
+                        <div class="alert alert-info text-center">
+                            <i class="fas fa-book-open fa-2x mb-3"></i>
+                            <h5>{% trans "No Courses Available" %}</h5>
+                            <p>{% trans "There are no courses available in your program at the moment." %}</p>
+                        </div>
+                    {% else %}
+                        <!-- Student Info -->
+                        {% if student %}
+                        <div class="row mb-4">
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body p-3">
+                                        <h6 class="card-title">{% trans "Student Information" %}</h6>
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <strong>{% trans "Level:" %}</strong> {{ student.level }}
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <strong>{% trans "Program:" %}</strong> {{ student.program.title }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                            <div class="col-md-6">
+                                <div class="card bg-light">
+                                    <div class="card-body p-3">
+                                        <h6 class="card-title">{% trans "Course Statistics" %}</h6>
+                                        <div class="row">
+                                            <div class="col-sm-6">
+                                                <strong>{% trans "Total Courses:" %}</strong> {{ courses|length }}
+                                            </div>
+                                            <div class="col-sm-6">
+                                                <strong>{% trans "Registered:" %}</strong> {{ taken_courses|length }}
+                                            </div>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Course Grid -->
+                        <div class="row">
+                            {% for course in courses %}
+                            <div class="col-lg-6 col-xl-4 mb-4">
+                                <div class="card h-100 course-card {% if course.id in taken_course_ids %}border-success{% else %}border-secondary{% endif %}">
+                                    <div class="card-header {% if course.id in taken_course_ids %}bg-success text-white{% else %}bg-secondary text-white{% endif %} p-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <h6 class="card-title mb-0 small">{{ course.code }}</h6>
+                                            {% if course.id in taken_course_ids %}
+                                                <span class="badge bg-light text-success">
+                                                    <i class="fas fa-check-circle me-1"></i>{% trans "Registered" %}
+                                                </span>
+                                            {% else %}
+                                                <span class="badge bg-light text-secondary">
+                                                    <i class="fas fa-clock me-1"></i>{% trans "Available" %}
+                                                </span>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                    
+                                    <div class="card-body p-3">
+                                        <h5 class="card-title">{{ course.title }}</h5>
+                                        
+                                        <div class="course-info mb-3">
+                                            <div class="row text-muted small">
+                                                <div class="col-6">
+                                                    <i class="fas fa-calendar me-1"></i>{% trans "Year:" %} {{ course.year }}
+                                                </div>
+                                                <div class="col-6">
+                                                    <i class="fas fa-clock me-1"></i>{% trans "Semester:" %} {{ course.semester }}
+                                                </div>
+                                                <div class="col-6">
+                                                    <i class="fas fa-graduation-cap me-1"></i>{% trans "Level:" %} {{ course.level }}
+                                                </div>
+                                                <div class="col-6">
+                                                    <i class="fas fa-star me-1"></i>{% trans "Credits:" %} {{ course.credit }}
+                                                </div>
+                                            </div>
+                                        </div>
+
+                                        <!-- Course Description -->
+                                        {% if course.summary %}
+                                        <p class="card-text small text-muted">
+                                            {{ course.summary|truncatewords:15 }}
+                                        </p>
+                                        {% endif %}
+
+                                        <!-- Course Resources -->
+                                        <div class="course-resources mb-3">
+                                            <div class="row">
+                                                <div class="col-4 text-center">
+                                                    <div class="resource-count">
+                                                        <span class="badge bg-primary">{{ course.upload_set.count }}</span>
+                                                        <small class="d-block text-muted">{% trans "Files" %}</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4 text-center">
+                                                    <div class="resource-count">
+                                                        <span class="badge bg-info">{{ course.uploadvideo_set.count }}</span>
+                                                        <small class="d-block text-muted">{% trans "Videos" %}</small>
+                                                    </div>
+                                                </div>
+                                                <div class="col-4 text-center">
+                                                    <div class="resource-count">
+                                                        <span class="badge bg-warning">{{ course.quiz_set.count }}</span>
+                                                        <small class="d-block text-muted">{% trans "Quizzes" %}</small>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        </div>
+                                    </div>
+
+                                    <div class="card-footer bg-light p-2">
+                                        <div class="d-flex justify-content-between align-items-center">
+                                            <a href="{% url 'course_detail' course.slug %}" 
+                                               class="btn btn-outline-primary btn-sm">
+                                                <i class="fas fa-eye me-1"></i>{% trans "View Course" %}
+                                            </a>
+                                            
+                                            {% if course.quiz_set.count > 0 %}
+                                            <a href="{% url 'quiz_index' course.slug %}" 
+                                               class="btn btn-outline-success btn-sm">
+                                                <i class="fas fa-question-circle me-1"></i>{% trans "Quizzes" %}
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                        
+                                        {% if course.id not in taken_course_ids %}
+                                        <div class="mt-2">
+                                            <small class="text-muted">
+                                                <i class="fas fa-info-circle me-1"></i>
+                                                {% trans "Register during course registration period" %}
+                                            </small>
+                                        </div>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            {% endfor %}
+                        </div>
+
+                        <!-- Pagination -->
+                        {% if is_paginated %}
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <nav aria-label="{% trans 'Course pagination' %}">
+                                    <ul class="pagination justify-content-center">
+                                        {% if page_obj.has_previous %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page=1">{% trans "First" %}</a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ page_obj.previous_page_number }}">{% trans "Previous" %}</a>
+                                            </li>
+                                        {% endif %}
+                                        
+                                        <li class="page-item active">
+                                            <span class="page-link">
+                                                {% trans "Page" %} {{ page_obj.number }} {% trans "of" %} {{ page_obj.paginator.num_pages }}
+                                            </span>
+                                        </li>
+                                        
+                                        {% if page_obj.has_next %}
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ page_obj.next_page_number }}">{% trans "Next" %}</a>
+                                            </li>
+                                            <li class="page-item">
+                                                <a class="page-link" href="?page={{ page_obj.paginator.num_pages }}">{% trans "Last" %}</a>
+                                            </li>
+                                        {% endif %}
+                                    </ul>
+                                </nav>
+                            </div>
+                        </div>
+                        {% endif %}
+
+                        <!-- Quick Actions -->
+                        <div class="row mt-4">
+                            <div class="col-12">
+                                <div class="card bg-light">
+                                    <div class="card-body p-3">
+                                        <h6 class="card-title">{% trans "Quick Actions" %}</h6>
+                                        <div class="btn-group" role="group">
+                                            <a href="{% url 'course_registration' %}" class="btn btn-primary btn-sm">
+                                                <i class="fas fa-plus me-1"></i>{% trans "Course Registration" %}
+                                            </a>
+                                            {% if taken_courses %}
+                                            <a href="{% url 'course_drop' %}" class="btn btn-warning btn-sm">
+                                                <i class="fas fa-minus me-1"></i>{% trans "Drop Courses" %}
+                                            </a>
+                                            {% endif %}
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.course-card {
+    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
+}
+
+.course-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
+}
+
+.resource-count .badge {
+    font-size: 0.9em;
+}
+
+.course-info {
+    border-left: 3px solid #007bff;
+    padding-left: 10px;
+}
+
+.btn-group .btn {
+    margin-right: 5px;
+}
+
+.btn-group .btn:last-child {
+    margin-right: 0;
+}
+
+@media (max-width: 768px) {
+    .btn-group {
+        display: flex;
+        flex-direction: column;
+    }
+    
+    .btn-group .btn {
+        margin-right: 0;
+        margin-bottom: 5px;
+    }
+    
+    .btn-group .btn:last-child {
+        margin-bottom: 0;
+    }
+}
+</style>
+{% endblock %}

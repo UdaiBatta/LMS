@@ -65,25 +65,31 @@ class StaffAddForm(UserCreationForm):
     )
 
     phone = forms.CharField(
-        max_length=30,
+        max_length=20,
         widget=forms.TextInput(
             attrs={
-                "type": "text",
+                "type": "tel",
                 "class": "form-control",
+                "placeholder": "+1234567890 or (123) 456-7890",
+                "pattern": r"^(\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}$",
             }
         ),
         label="Mobile No.",
+        help_text="Enter phone number in format: +1234567890 or (123) 456-7890",
+        required=False,
     )
 
-    email = forms.CharField(
-        max_length=30,
-        widget=forms.TextInput(
+    email = forms.EmailField(
+        max_length=254,
+        widget=forms.EmailInput(
             attrs={
-                "type": "text",
+                "type": "email",
                 "class": "form-control",
+                "placeholder": "user@example.com",
             }
         ),
         label="Email",
+        help_text="Enter a valid email address",
     )
 
     password1 = forms.CharField(
@@ -112,6 +118,41 @@ class StaffAddForm(UserCreationForm):
 
     class Meta(UserCreationForm.Meta):
         model = User
+        fields = [
+            "username",
+            "first_name", 
+            "last_name",
+            "gender",
+            "address",
+            "phone",
+            "email",
+            "password1",
+            "password2",
+        ]
+
+    def clean_email(self):
+        """Validate email uniqueness and format"""
+        email = self.cleaned_data.get('email')
+        if email:
+            email = email.lower()
+            if User.objects.filter(email__iexact=email).exists():
+                raise forms.ValidationError("A user with this email already exists.")
+        return email
+
+    def clean_phone(self):
+        """Validate phone number format"""
+        phone = self.cleaned_data.get('phone')
+        if phone:
+            # Remove spaces, dashes, and parentheses for validation
+            import re
+            clean_phone = re.sub(r'[-.\s\(\)]', '', phone)
+            # Check if it contains only digits and optional plus sign
+            if not re.match(r'^\+?\d{9,15}$', clean_phone):
+                raise forms.ValidationError(
+                    "Enter a valid phone number with 9-15 digits. "
+                    "Format: +1234567890 or (123) 456-7890"
+                )
+        return phone
 
     @transaction.atomic()
     def save(self, commit=True):
@@ -150,14 +191,18 @@ class StudentAddForm(UserCreationForm):
     )
 
     phone = forms.CharField(
-        max_length=30,
+        max_length=20,
         widget=forms.TextInput(
             attrs={
-                "type": "text",
+                "type": "tel",
                 "class": "form-control",
+                "placeholder": "+1234567890 or (123) 456-7890",
+                "pattern": r"^(\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}$",
             }
         ),
         label="Mobile No.",
+        help_text="Enter phone number in format: +1234567890 or (123) 456-7890",
+        required=False,
     )
 
     first_name = forms.CharField(
@@ -247,6 +292,30 @@ class StudentAddForm(UserCreationForm):
     #     if User.objects.filter(email__iexact=email, is_active=True).exists():
     #         raise forms.ValidationError("Email has taken, try another email address. ")
 
+    def clean_email(self):
+        """Validate email uniqueness and format"""
+        email = self.cleaned_data.get('email')
+        if email:
+            email = email.lower()
+            if User.objects.filter(email__iexact=email).exists():
+                raise forms.ValidationError("A user with this email already exists.")
+        return email
+
+    def clean_phone(self):
+        """Validate phone number format"""
+        phone = self.cleaned_data.get('phone')
+        if phone:
+            # Remove spaces, dashes, and parentheses for validation
+            import re
+            clean_phone = re.sub(r'[-.\s\(\)]', '', phone)
+            # Check if it contains only digits and optional plus sign
+            if not re.match(r'^\+?\d{9,15}$', clean_phone):
+                raise forms.ValidationError(
+                    "Enter a valid phone number with 9-15 digits. "
+                    "Format: +1234567890 or (123) 456-7890"
+                )
+        return phone
+
     class Meta(UserCreationForm.Meta):
         model = User
 
@@ -316,11 +385,15 @@ class ProfileUpdateForm(UserChangeForm):
     phone = forms.CharField(
         widget=forms.TextInput(
             attrs={
-                "type": "text",
+                "type": "tel",
                 "class": "form-control",
+                "placeholder": "+1234567890 or (123) 456-7890",
+                "pattern": r"^(\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}$",
             }
         ),
         label="Phone No.",
+        help_text="Enter phone number in format: +1234567890 or (123) 456-7890",
+        required=False,
     )
 
     address = forms.CharField(
@@ -332,6 +405,34 @@ class ProfileUpdateForm(UserChangeForm):
         ),
         label="Address / city",
     )
+
+    def clean_email(self):
+        """Validate email uniqueness and format"""
+        email = self.cleaned_data.get('email')
+        if email:
+            email = email.lower()
+            # Exclude current user from uniqueness check
+            existing_users = User.objects.filter(email__iexact=email)
+            if self.instance and self.instance.pk:
+                existing_users = existing_users.exclude(pk=self.instance.pk)
+            if existing_users.exists():
+                raise forms.ValidationError("A user with this email already exists.")
+        return email
+
+    def clean_phone(self):
+        """Validate phone number format"""
+        phone = self.cleaned_data.get('phone')
+        if phone:
+            # Remove spaces, dashes, and parentheses for validation
+            import re
+            clean_phone = re.sub(r'[-.\s\(\)]', '', phone)
+            # Check if it contains only digits and optional plus sign
+            if not re.match(r'^\+?\d{9,15}$', clean_phone):
+                raise forms.ValidationError(
+                    "Enter a valid phone number with 9-15 digits. "
+                    "Format: +1234567890 or (123) 456-7890"
+                )
+        return phone
 
     class Meta:
         model = User
@@ -346,7 +447,7 @@ class ProfileUpdateForm(UserChangeForm):
         ]
 
 
-class ProgramUpdateForm(UserChangeForm):
+class ProgramUpdateForm(forms.ModelForm):
     program = forms.ModelChoiceField(
         queryset=Program.objects.all(),
         widget=forms.Select(
@@ -392,14 +493,18 @@ class ParentAddForm(UserCreationForm):
     )
 
     phone = forms.CharField(
-        max_length=30,
+        max_length=20,
         widget=forms.TextInput(
             attrs={
-                "type": "text",
+                "type": "tel",
                 "class": "form-control",
+                "placeholder": "+1234567890 or (123) 456-7890",
+                "pattern": r"^(\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}$",
             }
         ),
         label="Mobile No.",
+        help_text="Enter phone number in format: +1234567890 or (123) 456-7890",
+        required=False,
     )
 
     first_name = forms.CharField(
@@ -477,6 +582,30 @@ class ParentAddForm(UserCreationForm):
     #     email = self.cleaned_data['email']
     #     if User.objects.filter(email__iexact=email, is_active=True).exists():
     #         raise forms.ValidationError("Email has taken, try another email address. ")
+
+    def clean_email(self):
+        """Validate email uniqueness and format"""
+        email = self.cleaned_data.get('email')
+        if email:
+            email = email.lower()
+            if User.objects.filter(email__iexact=email).exists():
+                raise forms.ValidationError("A user with this email already exists.")
+        return email
+
+    def clean_phone(self):
+        """Validate phone number format"""
+        phone = self.cleaned_data.get('phone')
+        if phone:
+            # Remove spaces, dashes, and parentheses for validation
+            import re
+            clean_phone = re.sub(r'[-.\s\(\)]', '', phone)
+            # Check if it contains only digits and optional plus sign
+            if not re.match(r'^\+?\d{9,15}$', clean_phone):
+                raise forms.ValidationError(
+                    "Enter a valid phone number with 9-15 digits. "
+                    "Format: +1234567890 or (123) 456-7890"
+                )
+        return phone
 
     class Meta(UserCreationForm.Meta):
         model = User

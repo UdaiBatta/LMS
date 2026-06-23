@@ -1,103 +1,307 @@
 {% extends "base.html" %}
 {% load i18n %}
+{% load static %}
 
-{% block title %} {% trans "Progress Page" %} | {% trans 'Learning management system' %} {% endblock %}
-{% block description %} {% trans "User Progress Page" %} {% endblock %}
+{% block title %}{% trans "Quiz Progress" %} | {% trans 'Learning management system' %}{% endblock %}
+{% block description %}{% trans "User Quiz Progress Page" %}{% endblock %}
 
 {% block content %}
+<div class="container-fluid">
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+            {% if request.user.is_superuser or request.user.is_lecturer %}
+            <li class="breadcrumb-item"><a href="{% url 'quiz_dashboard' %}">{% trans 'Quiz Dashboard' %}</a></li>
+            {% endif %}
+            <li class="breadcrumb-item active" aria-current="page">{% trans 'Quiz Progress' %}</li>
+        </ol>
+    </nav>
 
-<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-    <ol class="breadcrumb">
-        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
-        <li class="breadcrumb-item active" aria-current="page">{% trans 'Progress Page' %}</li>
-    </ol>
-</nav>
+    <div class="d-flex justify-content-between align-items-center mb-4">
+        <div>
+            <h2 class="mb-0">
+                <i class="fas fa-chart-line me-2"></i>
+                {% if request.user.is_superuser %}
+                    {% trans "All Quiz Results" %}
+                {% elif request.user.is_lecturer %}
+                    {% trans "My Students' Quiz Progress" %}
+                {% else %}
+                    {% trans "My Quiz Progress" %}
+                {% endif %}
+            </h2>
+            <p class="text-muted mb-0">
+                {% if request.user.is_superuser %}
+                    {% trans "Overview of all student quiz performance" %}
+                {% elif request.user.is_lecturer %}
+                    {% trans "Quiz results from your courses" %}
+                {% else %}
+                    {% trans "Your completed quiz attempts and scores" %}
+                {% endif %}
+            </p>
+        </div>
+        <div>
+            {% if request.user.is_superuser or request.user.is_lecturer %}
+            <a href="{% url 'quiz_dashboard' %}" class="btn btn-outline-primary">
+                <i class="fas fa-chart-bar me-1"></i>{% trans "Dashboard" %}
+            </a>
+            <a href="{% url 'quiz_marking' %}" class="btn btn-outline-secondary">
+                <i class="fas fa-clipboard-check me-1"></i>{% trans "Review Results" %}
+            </a>
+            {% endif %}
+        </div>
+    </div>
 
-<p class="title-1"><i class="fas fa-record-vinyl"></i>{% trans 'Quiz Progress Rec' %}</p>
+    <!-- Statistics Cards -->
+    {% if exams %}
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-quiz fa-2x text-primary mb-2"></i>
+                    <h4 class="text-primary">{{ exams_counter }}</h4>
+                    <p class="card-text">{% trans "Total Attempts" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-percentage fa-2x text-success mb-2"></i>
+                    <h4 class="text-success">
+                        {% widthratio exams|length exams_counter 100 %}%
+                    </h4>
+                    <p class="card-text">{% trans "Completion Rate" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-trophy fa-2x text-warning mb-2"></i>
+                    <h4 class="text-warning">
+                        {% for exam in exams %}
+                            {% if exam.check_if_passed %}{{ exam.get_percent_correct }}{% endif %}
+                        {% endfor %}%
+                    </h4>
+                    <p class="card-text">{% trans "Best Score" %}</p>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card text-center">
+                <div class="card-body">
+                    <i class="fas fa-calendar fa-2x text-info mb-2"></i>
+                    <h4 class="text-info">{{ exams.0.end|date:"M d" }}</h4>
+                    <p class="card-text">{% trans "Last Attempt" %}</p>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
-  {% if cat_scores %}
+    <!-- Category Scores Section -->
+    {% if cat_scores %}
+    <div class="card mb-4">
+        <div class="card-header">
+            <h5 class="mb-0"><i class="fas fa-chart-pie me-2"></i>{% trans "Question Category Performance" %}</h5>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-striped">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>{% trans "Category" %}</th>
+                            <th>{% trans "Correct" %}</th>
+                            <th>{% trans "Incorrect" %}</th>
+                            <th>{% trans "Percentage" %}</th>
+                            <th>{% trans "Performance" %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for cat, value in cat_scores.items %}
+                        <tr>
+                            <td><span class="badge bg-secondary">{{ cat }}</span></td>
+                            <td><span class="text-success fw-bold">{{ value.0 }}</span></td>
+                            <td><span class="text-danger fw-bold">{{ value.1 }}</span></td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-2" style="height: 20px;">
+                                        <div class="progress-bar 
+                                            {% if value.2 >= 80 %}bg-success
+                                            {% elif value.2 >= 60 %}bg-warning
+                                            {% else %}bg-danger{% endif %}" 
+                                             style="width: {{ value.2 }}%">
+                                        </div>
+                                    </div>
+                                    <span class="fw-bold">{{ value.2 }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                {% if value.2 >= 80 %}
+                                    <span class="badge bg-success">Excellent</span>
+                                {% elif value.2 >= 60 %}
+                                    <span class="badge bg-warning">Good</span>
+                                {% else %}
+                                    <span class="badge bg-danger">Needs Improvement</span>
+                                {% endif %}
+                            </td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
-  <div class="header-title text-center">{% trans "Question Category Scores" %}</div>
-  <div class="title-line"></div>
+    <!-- Completed Exams Section -->
+    {% if exams %}
+    <div class="card">
+        <div class="card-header d-flex justify-content-between align-items-center">
+            <h5 class="mb-0">
+                <i class="fas fa-history me-2"></i>
+                {% if request.user.is_superuser %}
+                    {% trans "All Quiz Attempts" %}
+                {% elif request.user.is_lecturer %}
+                    {% trans "Student Quiz Attempts" %}
+                {% else %}
+                    {% trans "Your Quiz History" %}
+                {% endif %}
+            </h5>
+            <span class="badge bg-primary">{{ exams_counter }} {% trans "attempts" %}</span>
+        </div>
+        <div class="card-body">
+            <div class="table-responsive">
+                <table class="table table-hover">
+                    <thead class="table-dark">
+                        <tr>
+                            <th>#</th>
+                            {% if request.user.is_superuser or request.user.is_lecturer %}
+                            <th>{% trans "Student" %}</th>
+                            {% endif %}
+                            <th>{% trans "Quiz Title" %}</th>
+                            <th>{% trans "Course" %}</th>
+                            <th>{% trans "Score" %}</th>
+                            <th>{% trans "Percentage" %}</th>
+                            <th>{% trans "Status" %}</th>
+                            <th>{% trans "Date" %}</th>
+                            {% if request.user.is_superuser or request.user.is_lecturer %}
+                            <th>{% trans "Actions" %}</th>
+                            {% endif %}
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for exam in exams %}
+                        <tr>
+                            <td>{{ forloop.counter }}</td>
+                            {% if request.user.is_superuser or request.user.is_lecturer %}
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <img src="{{ exam.user.picture.url }}" alt="Avatar" class="rounded-circle me-2" width="30" height="30">
+                                    {{ exam.user.get_full_name|default:exam.user.username }}
+                                </div>
+                            </td>
+                            {% endif %}
+                            <td>
+                                <div>
+                                    <strong>{{ exam.quiz.title }}</strong>
+                                    <br><small class="text-muted">{{ exam.quiz.get_category_display }}</small>
+                                </div>
+                            </td>
+                            <td>{{ exam.course.title|truncatechars:30 }}</td>
+                            <td>
+                                <strong>{{ exam.current_score }}</strong> / {{ exam.get_max_score }}
+                            </td>
+                            <td>
+                                <div class="d-flex align-items-center">
+                                    <div class="progress flex-grow-1 me-2" style="height: 15px;">
+                                        <div class="progress-bar 
+                                            {% if exam.check_if_passed %}bg-success
+                                            {% else %}bg-danger{% endif %}" 
+                                             style="width: {{ exam.get_percent_correct }}%">
+                                        </div>
+                                    </div>
+                                    <span class="fw-bold">{{ exam.get_percent_correct }}%</span>
+                                </div>
+                            </td>
+                            <td>
+                                {% if exam.check_if_passed %}
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check me-1"></i>{% trans "Passed" %}
+                                    </span>
+                                {% else %}
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-times me-1"></i>{% trans "Failed" %}
+                                    </span>
+                                {% endif %}
+                            </td>
+                            <td>
+                                <div>
+                                    {{ exam.end|date:"M d, Y" }}
+                                    <br><small class="text-muted">{{ exam.end|time:"H:i" }}</small>
+                                </div>
+                            </td>
+                            {% if request.user.is_superuser or request.user.is_lecturer %}
+                            <td>
+                                <div class="btn-group btn-group-sm">
+                                    <a href="{% url 'quiz_marking_detail' exam.pk %}" class="btn btn-outline-primary btn-sm" title="{% trans 'View Details' %}">
+                                        <i class="fas fa-eye"></i>
+                                    </a>
+                                </div>
+                            </td>
+                            {% endif %}
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+    {% endif %}
 
-  <table class="table table-bordered table-striped">
-
-	<thead>
-	  <tr>
-		<th>{% trans "Category" %}</th>
-		<th>{% trans "Correctly answererd" %}</th>
-		<th>{% trans "Incorrect" %}</th>
-		<th>%</th>
-	  </tr>
-	</thead>
-
-	<tbody>
-
-
-	  {% for cat, value in cat_scores.items %}
-	  <tr>
-		<td>{{ cat }}</td>
-		<td>{{ value.0 }}</td>
-		<td>{{ value.1 }}</td>
-		<td>{{ value.2 }}</td>
-	  </tr>
-
-	  {% endfor %}
-
-	</tbody>
-
-  </table>
-
-
-  {% endif %}
-
-  {% if exams %}
-
-  <div class="header-title-xl">{% trans "Previous exam papers" %}</div>
-  <p class="lead fw-bold">
-	{% if request.user.is_superuser %}
-	{% trans "Student exam results" %}
-	{% else %}
-	{% trans "Below are the results of exams that you have sat" %}
-	{% endif %}
-  </p>
-  <div class="text-light bg-secondary mb-2 p-1">{% trans 'Total complete exams:' %} {{ exams_counter }}</div>
-<div class="table-responsive">
-  <table class="table table-bordered table-striped">
-
-	<thead>
-	  <tr>
-		<th>#</th>
-		<th>{% trans "Quiz Title" %}</th>
-		<th>{% trans "Score" %}</th>
-		<th>{% trans "Possible Score" %}</th>
-		<th>{% trans 'Out of 100%' %}</th>
-	  </tr>
-	</thead>
-
-	<tbody>
-
-	  {% for exam in exams %}
-
-	  <tr>
-		<td>{{ forloop.counter }}</td>
-		<td>{{ exam.quiz.title }}</td>
-		<td>{{ exam.current_score }}</td>
-		<td>{{ exam.get_max_score }}</td>
-		<td>{{ exam.get_percent_correct }}%</td>
-	  </tr>
-
-	  {% endfor %}
-
-	</tbody>
-
-  </table>
+    <!-- Empty State -->
+    {% if not cat_scores and not exams %}
+    <div class="text-center py-5">
+        <div class="mb-4">
+            <i class="fas fa-chart-line fa-4x text-muted mb-3"></i>
+            <h4 class="text-muted">
+                {% if request.user.is_superuser %}
+                    {% trans "No Quiz Data Available" %}
+                {% elif request.user.is_lecturer %}
+                    {% trans "No Student Quiz Attempts Yet" %}
+                {% else %}
+                    {% trans "No Quiz Progress Yet" %}
+                {% endif %}
+            </h4>
+            <p class="text-muted">
+                {% if request.user.is_superuser %}
+                    {% trans "Quiz results and progress will appear here once students start taking quizzes." %}
+                {% elif request.user.is_lecturer %}
+                    {% trans "Student quiz attempts from your courses will appear here." %}
+                {% else %}
+                    {% trans "Your quiz progress and results will appear here once you start taking quizzes." %}
+                {% endif %}
+            </p>
+        </div>
+        
+        <div class="d-flex justify-content-center gap-3">
+            {% if request.user.is_superuser or request.user.is_lecturer %}
+                <a href="{% url 'quiz_dashboard' %}" class="btn btn-primary">
+                    <i class="fas fa-plus me-2"></i>{% trans "Create Quiz" %}
+                </a>
+                <a href="{% url 'programs' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-book me-2"></i>{% trans "Browse Courses" %}
+                </a>
+            {% else %}
+                <a href="{% url 'user_course_list' %}" class="btn btn-primary">
+                    <i class="fas fa-book me-2"></i>{% trans "My Courses" %}
+                </a>
+                <a href="{% url 'programs' %}" class="btn btn-outline-secondary">
+                    <i class="fas fa-search me-2"></i>{% trans "Find Quizzes" %}
+                </a>
+            {% endif %}
+        </div>
+    </div>
+    {% endif %}
 </div>
-  {% endif %}
-  {% if not cat_scores and not exams %}
-  <h4 class="text-center mt-5 py-5 text-muted">
-	  <i class="fa-regular fa-folder-open me-2"></i>{% trans 'Progress records will appear here' %}
-  </h4>
-  {% endif %}
-
 {% endblock %}

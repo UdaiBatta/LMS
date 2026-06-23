@@ -4,9 +4,32 @@ from django.contrib.auth.models import AbstractUser, UserManager, BaseUserManage
 from django.conf import settings
 from django.utils.translation import gettext_lazy as _
 from django.db.models import Q
+from django.core.validators import EmailValidator, RegexValidator
 from PIL import Image
 
 from course.models import Program
+
+
+# -----------------------------
+# VALIDATORS
+# -----------------------------
+
+# Email validator with custom error message
+email_validator = EmailValidator(
+    message=_("Enter a valid email address.")
+)
+
+# Phone number validator - supports international formats
+phone_validator = RegexValidator(
+    regex=r'^\+?1?\d{9,15}$',
+    message=_("Phone number must be 9-15 digits. Country code is optional. Format: '+999999999' or '999999999'")
+)
+
+# Alternative phone validator for more flexible formats
+phone_validator_flexible = RegexValidator(
+    regex=r'^(\+\d{1,3}[-.\s]?)?\(?\d{1,4}\)?[-.\s]?\d{1,4}[-.\s]?\d{1,9}$',
+    message=_("Enter a valid phone number. Examples: +1234567890, (123) 456-7890, 123-456-7890")
+)
 
 
 # -----------------------------
@@ -85,7 +108,16 @@ class User(AbstractUser):
     is_dep_head = models.BooleanField(default=False)
 
     gender = models.CharField(max_length=1, choices=GENDERS, blank=True, null=True)
-    phone = models.CharField(max_length=60, blank=True, null=True)
+    
+    # Enhanced phone field with validation
+    phone = models.CharField(
+        max_length=20, 
+        blank=True, 
+        null=True,
+        validators=[phone_validator_flexible],
+        help_text=_("Enter phone number in format: +1234567890 or (123) 456-7890")
+    )
+    
     address = models.CharField(max_length=255, blank=True, null=True)
 
     picture = models.ImageField(
@@ -93,6 +125,16 @@ class User(AbstractUser):
         default="default.png",
         null=True,
         blank=True,
+    )
+
+    # Override email to add validation (Django's built-in email field already has EmailValidator)
+    email = models.EmailField(
+        _('email address'),
+        unique=True,  # Make email unique
+        help_text=_("Enter a valid email address"),
+        error_messages={
+            'unique': _("A user with that email already exists."),
+        },
     )
 
     objects = CustomUserManager()

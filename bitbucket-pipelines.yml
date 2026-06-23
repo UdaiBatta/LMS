@@ -1,0 +1,72 @@
+image: python:3.10
+
+definitions:
+  caches:
+    pip: ~/.cache/pip
+
+  steps:
+    - step: &test
+        name: Run Tests
+        caches:
+          - pip
+        script:
+          - pip install -r requirements.txt
+          - python manage.py check
+          - python manage.py test
+        artifacts:
+          - "**/test-results/**"
+
+    - step: &build-docker
+        name: Build Docker Image
+        services:
+          - docker
+        script:
+          - docker build -t skylearn:$BITBUCKET_COMMIT .
+          - docker tag skylearn:$BITBUCKET_COMMIT skylearn:latest
+        artifacts:
+          - "**"
+
+    - step: &deploy-staging
+        name: Deploy to Staging
+        deployment: staging
+        script:
+          - echo "Deploying to staging environment"
+          - docker build -t skylearn:staging .
+          # Add your staging deployment commands here
+          # Example: docker push to registry, deploy to server, etc.
+
+    - step: &deploy-production
+        name: Deploy to Production
+        deployment: production
+        script:
+          - echo "Deploying to production environment"
+          - docker build -t skylearn:production .
+          # Add your production deployment commands here
+          # Example: docker push to registry, deploy to server, etc.
+
+pipelines:
+  default:
+    - step: *test
+    - step: *build-docker
+
+  branches:
+    develop:
+      - step: *test
+      - step: *build-docker
+      - step: *deploy-staging
+
+    main:
+      - step: *test
+      - step: *build-docker
+      - step: *deploy-production
+
+  pull-requests:
+    '**':
+      - step: *test
+
+  custom:
+    test-only:
+      - step: *test
+    build-only:
+      - step: *build-docker
+

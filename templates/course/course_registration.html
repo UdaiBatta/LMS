@@ -18,6 +18,20 @@
 
 {% include 'snippets/messages.html' %}
 
+{% if not registration_allowed %}
+<div class="alert alert-warning text-center">
+    <i class="fas fa-exclamation-triangle fa-2x mb-3"></i>
+    <h5>{% trans "Course Registration Unavailable" %}</h5>
+    <p>{{ registration_message }}</p>
+    <small class="text-muted">{% trans "Please contact the academic office for more information." %}</small>
+</div>
+{% elif registration_message %}
+<div class="alert alert-info">
+    <i class="fas fa-info-circle me-2"></i>
+    {{ registration_message }}
+</div>
+{% endif %}
+
 {% if current_semester %}
 {% if is_calender_on == False %}
 
@@ -28,7 +42,7 @@
 
 {% else %}
 
-{% if not all_courses_are_registered %}
+{% if not all_courses_are_registered and registration_allowed %}
 
 <form action="{% url 'course_registration' %}" method="POST">{% csrf_token %}
     <div class="col-md-12 p-0 bg-white">
@@ -177,6 +191,46 @@
     </div>
 </form>
 {% endif %}
+
+{% if not all_courses_are_registered and not registration_allowed %}
+<!-- Show read-only course list when registration is closed -->
+<div class="col-md-12 p-0 bg-white">
+    <p class="form-title fw-bold text-muted">{% trans 'Available Courses' %} ({% trans 'Registration Closed' %})</p>
+    <div class="container">
+        <div class="alert alert-info">
+            <i class="fas fa-info-circle me-2"></i>
+            {% trans "Course registration is currently closed. The courses below would be available during registration period." %}
+        </div>
+
+        <div class="table-responsive p-0 px-2 mt-2">
+            <div class="table-title"><u>{% trans 'Available Courses:' %}</u></div>
+            <div class="table-shadow">
+                <table class="table">
+                    <thead>
+                        <tr>
+                            <th>{% trans 'Course Code' %}</th>
+                            <th>{% trans 'Course Title' %}</th>
+                            <th>{% trans 'Cr.Hr(s)' %}</th>
+                            <th>{% trans 'Semester' %}</th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        {% for course in courses %}
+                        <tr>
+                            <td>{{ course.code }}</td>
+                            <td>{{ course.title }}</td>
+                            <td>{{ course.credit }}</td>
+                            <td>{{ course.semester }}</td>
+                        </tr>
+                        {% endfor %}
+                    </tbody>
+                </table>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
 <br>
 <br>
 

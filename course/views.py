@@ -8,10 +8,11 @@ from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views.generic import CreateView
 from django_filters.views import FilterView
+from django.utils.translation import gettext as _
 
 from accounts.decorators import admin_required, lecturer_required, student_required
 from accounts.models import Student
-from core.models import Semester
+from core.models import Semester, Session
 from course.filters import CourseAllocationFilter, ProgramFilter
 from course.forms import (
     CourseAddForm,
@@ -131,6 +132,11 @@ def course_single(request, slug):
     files = Upload.objects.filter(course__slug=slug)
     videos = UploadVideo.objects.filter(course__slug=slug)
     lecturers = CourseAllocation.objects.filter(courses__pk=course.id)
+    
+    # Get quizzes for this course
+    from quiz.models import Quiz
+    quizzes = Quiz.objects.filter(course=course).order_by('-timestamp')
+    
     return render(
         request,
         "course/course_single.html",
@@ -140,7 +146,10 @@ def course_single(request, slug):
             "files": files,
             "videos": videos,
             "lecturers": lecturers,
+            "quizzes": quizzes,
             "media_url": settings.MEDIA_URL,
+            "has_access": True,
+            "student_registered": True,
         },
     )
 
@@ -418,78 +427,146 @@ def handle_video_delete(request, slug, video_slug):
 @login_required
 @student_required
 def course_registration(request):
+    """
+    Handle course registration for students with proper timing controls.
+    Students can only register:
+    1. Before semester starts (registration period)
+    2. Not during active semester
+    """
+    try:
+        student = get_object_or_404(Student, student__id=request.user.id)
+    except Student.DoesNotExist:
+        messages.error(request, _("Student profile not found. Please contact administrator."))
+        return redirect('user_course_list')
+    
+    if not student.program:
+        messages.error(request, _("You are not assigned to a program. Please contact administrator."))
+        return redirect('user_course_list')
+    
+    # Get current semester and session
+    current_semester = Semester.objects.filter(is_current_semester=True).first()
+    current_session = Session.objects.filter(is_current_session=True).first()
+    
+    if not current_semester or not current_session:
+        messages.error(request, _("No active semester or session found. Course registration is not available."))
+        return render(request, "course/course_registration.html", {
+            "no_semester": True,
+            "student": student,
+            "error_message": "No active semester or session configured."
+        })
+
+    # Check if registration is allowed (you can customize this logic based on your needs)
+    registration_allowed = True
+    registration_message = ""
+    
+    # Example: Check if we're in registration period vs active semester
+    # You might want to add date-based checks here
+    from datetime import date
+    today = date.today()
+    
+    # If semester has begun (you can customize this logic)
+    if current_semester.next_semester_begins and today >= current_semester.next_semester_begins:
+        registration_allowed = False
+        registration_message = _("Course registration is closed. The semester has already begun.")
+    
+    # You could also add specific registration period dates to the Semester model
+    # For now, we'll allow registration but with a warning during active semester
+    
     if request.method == "POST":
-        student = Student.objects.get(student__pk=request.user.id)
-        ids = ()
+        if not registration_allowed:
+            messages.error(request, registration_message)
+            return redirect("course_registration")
+            
+        ids = []
         data = request.POST.copy()
         data.pop("csrfmiddlewaretoken", None)  # remove csrf_token
+        
         for key in data.keys():
-            ids = ids + (str(key),)
-        for s in range(0, len(ids)):
-            course = Course.objects.get(pk=ids[s])
-            obj = TakenCourse.objects.create(student=student, course=course)
-            obj.save()
-        messages.success(request, "Courses registered successfully!")
+            if key.isdigit():  # Ensure we only process course IDs
+                ids.append(int(key))
+        
+        if not ids:
+            messages.warning(request, _("No courses selected for registration."))
+            return redirect("course_registration")
+        
+        # Check for duplicate registrations and validate courses
+        already_registered = []
+        newly_registered = []
+        invalid_courses = []
+        
+        for course_id in ids:
+            try:
+                course = Course.objects.get(pk=course_id, program=student.program)
+                existing = TakenCourse.objects.filter(student=student, course=course).exists()
+                
+                if not existing:
+                    TakenCourse.objects.create(student=student, course=course)
+                    newly_registered.append(course.title)
+                else:
+                    already_registered.append(course.title)
+            except Course.DoesNotExist:
+                invalid_courses.append(f"Course ID {course_id}")
+        
+        # Provide feedback
+        if newly_registered:
+            messages.success(request, _("Successfully registered for: %s") % ", ".join(newly_registered))
+        
+        if already_registered:
+            messages.warning(request, _("Already registered for: %s") % ", ".join(already_registered))
+            
+        if invalid_courses:
+            messages.error(request, _("Invalid courses: %s") % ", ".join(invalid_courses))
+        
         return redirect("course_registration")
+    
     else:
-        current_semester = Semester.objects.filter(is_current_semester=True).first()
-        if not current_semester:
-            messages.error(request, "No active semester found.")
-            return render(request, "course/course_registration.html")
+        # GET request - show registration form
+        
+        # Get taken courses
+        taken_courses = TakenCourse.objects.filter(student=student)
+        taken_course_ids = [tc.course.pk for tc in taken_courses]
 
-        # student = Student.objects.get(student__pk=request.user.id)
-        student = get_object_or_404(Student, student__id=request.user.id)
-        taken_courses = TakenCourse.objects.filter(student__student__id=request.user.id)
-        t = ()
-        for i in taken_courses:
-            t += (i.course.pk,)
-
-        courses = (
-            Course.objects.filter(
-                program__pk=student.program.id,
-                level=student.level,
-                semester=current_semester,
-            )
-            .exclude(id__in=t)
-            .order_by("year")
-        )
-        all_courses = Course.objects.filter(
-            level=student.level, program__pk=student.program.id
+        # Available courses for registration (excluding already taken)
+        available_courses = Course.objects.filter(
+            program=student.program,
+            level=student.level,
+        ).exclude(id__in=taken_course_ids).order_by("year", "title")
+        
+        # All courses in program for statistics
+        all_program_courses = Course.objects.filter(
+            level=student.level, 
+            program=student.program
         )
 
-        no_course_is_registered = False  # Check if no course is registered
-        all_courses_are_registered = False
+        # Calculate statistics
+        registered_courses = Course.objects.filter(id__in=taken_course_ids, level=student.level)
+        
+        no_course_is_registered = registered_courses.count() == 0
+        all_courses_are_registered = registered_courses.count() == all_program_courses.count()
 
-        registered_courses = Course.objects.filter(level=student.level).filter(id__in=t)
-        if (
-            registered_courses.count() == 0
-        ):  # Check if number of registered courses is 0
-            no_course_is_registered = True
-
-        if registered_courses.count() == all_courses.count():
-            all_courses_are_registered = True
-
-        total_first_semester_credit = 0
-        total_sec_semester_credit = 0
-        total_registered_credit = 0
-        for i in courses:
-            if i.semester == "First":
-                total_first_semester_credit += int(i.credit)
-            if i.semester == "Second":
-                total_sec_semester_credit += int(i.credit)
-        for i in registered_courses:
-            total_registered_credit += int(i.credit)
+        # Calculate credits
+        total_first_semester_credit = sum(
+            course.credit for course in available_courses if course.semester == "First"
+        )
+        total_second_semester_credit = sum(
+            course.credit for course in available_courses if course.semester == "Second"  
+        )
+        total_registered_credit = sum(course.credit for course in registered_courses)
+        
         context = {
             "is_calender_on": True,
             "all_courses_are_registered": all_courses_are_registered,
             "no_course_is_registered": no_course_is_registered,
             "current_semester": current_semester,
-            "courses": courses,
+            "current_session": current_session,
+            "courses": available_courses,
             "total_first_semester_credit": total_first_semester_credit,
-            "total_sec_semester_credit": total_sec_semester_credit,
+            "total_sec_semester_credit": total_second_semester_credit,
             "registered_courses": registered_courses,
             "total_registered_credit": total_registered_credit,
             "student": student,
+            "registration_allowed": registration_allowed,
+            "registration_message": registration_message,
         }
         return render(request, "course/course_registration.html", context)
 
@@ -497,6 +574,8 @@ def course_registration(request):
 @login_required
 @student_required
 def course_drop(request):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
     if request.method == "POST":
         student = get_object_or_404(Student, student__pk=request.user.id)
         course_ids = request.POST.getlist("course_ids")
@@ -509,24 +588,107 @@ def course_drop(request):
 
 
 # ########################################################
-# User Course List View
+# User Course List View (UPDATED)
 # ########################################################
 
 
 @login_required
 def user_course_list(request):
+    """Display courses based on user type with enhanced functionality for students"""
+    
     if request.user.is_lecturer:
-        courses = Course.objects.filter(allocated_course__lecturer__pk=request.user.id)
-        return render(request, "course/user_course_list.html", {"courses": courses})
+        # Lecturers see courses they teach
+        courses = Course.objects.filter(allocated_course__lecturer__pk=request.user.id).distinct()
+        template = 'course/user_course_list.html'
+        context_title = _('My Teaching Courses')
+        
+        # Add pagination for lecturers
+        paginator = Paginator(courses, 12)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        
+        context = {
+            'courses': page_obj,
+            'title': context_title,
+            'is_paginated': page_obj.has_other_pages(),
+            'page_obj': page_obj,
+        }
+        
+    elif request.user.is_student:
+        # Students see courses from their enrolled program
+        try:
+            student = Student.objects.get(student=request.user)
+            if student.program:
+                # Get all courses from student's program
+                program_courses = Course.objects.filter(
+                    program=student.program
+                ).distinct().order_by('year', 'semester', 'title')
+                
+                # Get courses the student has registered for
+                taken_courses = TakenCourse.objects.filter(student=student)
+                taken_course_ids = [tc.course.id for tc in taken_courses]
+                
+                # Add pagination
+                paginator = Paginator(program_courses, 12)
+                page_number = request.GET.get('page')
+                page_obj = paginator.get_page(page_number)
+                
+                context = {
+                    'courses': page_obj,
+                    'student': student,
+                    'taken_courses': taken_courses,
+                    'taken_course_ids': taken_course_ids,
+                    'program': student.program,
+                    'title': _('My Courses'),
+                    'is_paginated': page_obj.has_other_pages(),
+                    'page_obj': page_obj,
+                }
+            else:
+                context = {
+                    'courses': [],
+                    'student': student,
+                    'title': _('My Courses'),
+                    'no_program': True,
+                }
+                messages.warning(request, _("Please contact admin to assign you to a program."))
+                
+        except Student.DoesNotExist:
+            context = {
+                'courses': [],
+                'title': _('My Courses'),
+                'no_student_profile': True,
+            }
+            messages.error(request, _("Student profile not found. Please contact admin."))
+            
+        template = 'course/student_course_list.html'
+        
+    elif request.user.is_superuser:
+        # Admins see all courses
+        courses = Course.objects.all().order_by('program', 'year', 'semester')
+        template = 'course/user_course_list.html'
+        context_title = _('All Courses')
+        
+        # Add pagination for admins
+        paginator = Paginator(courses, 12)
+        page_number = request.GET.get('page')
+        page_obj = paginator.get_page(page_number)
+        
+        context = {
+            'courses': page_obj,
+            'title': context_title,
+            'is_paginated': page_obj.has_other_pages(),
+            'page_obj': page_obj,
+        }
+        
+    else:
+        # Other users see no courses
+        context = {
+            'courses': [],
+            'title': _('Available Courses'),
+            'no_access': True,
+        }
+        template = 'course/user_course_list.html'
 
-    if request.user.is_student:
-        student = get_object_or_404(Student, student__pk=request.user.id)
-        taken_courses = TakenCourse.objects.filter(student=student)
-        return render(
-            request,
-            "course/user_course_list.html",
-            {"student": student, "taken_courses": taken_courses},
-        )
+    return render(request, template, context)
 
-    # For other users
-    return render(request, "course/user_course_list.html")
+

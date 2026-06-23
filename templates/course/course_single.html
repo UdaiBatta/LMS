@@ -36,9 +36,14 @@
             {% endif %}
         </div>
         <div class="ms-auto">
-            <a class="btn btn-sm btn-warning" href="{% url 'quiz_index' course.slug %}"><i class="fas fa-list"></i>
-                {% trans 'Take a Quiz' %}
+            {% if has_access %}
+            <a class="btn btn-sm btn-warning" href="{% url 'quiz_index' course.slug %}">
+                <i class="fas fa-question-circle me-1"></i>{% trans 'Quizzes' %} 
+                {% if quizzes.count > 0 %}
+                <span class="badge bg-light text-dark">{{ quizzes.count }}</span>
+                {% endif %}
             </a>
+            {% endif %}
         </div>
     </div>
 </div>
@@ -47,6 +52,71 @@
 <p class="small text-muted">{{ course.summary }}</p>
 
 {% include 'snippets/messages.html' %}
+
+{% if has_access %}
+<!-- Course Statistics -->
+<div class="container mb-4">
+    <div class="row">
+        <div class="col-12">
+            <div class="card bg-light">
+                <div class="card-body p-3">
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <h4 class="text-primary mb-1">{{ videos.count }}</h4>
+                                <small class="text-muted">{% trans "Video Tutorials" %}</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <h4 class="text-success mb-1">{{ files.count }}</h4>
+                                <small class="text-muted">{% trans "Study Materials" %}</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <h4 class="text-warning mb-1">{{ quizzes.count }}</h4>
+                                <small class="text-muted">{% trans "Quizzes Available" %}</small>
+                            </div>
+                        </div>
+                        <div class="col-md-3">
+                            <div class="stat-box">
+                                <h4 class="text-info mb-1">{{ course.credit }}</h4>
+                                <small class="text-muted">{% trans "Credit Hours" %}</small>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    {% if request.user.is_student and not student_registered %}
+                    <div class="row mt-3">
+                        <div class="col-12 text-center">
+                            <div class="alert alert-info">
+                                <i class="fas fa-info-circle me-2"></i>
+                                {% trans "You are not registered for this course. Register during the course registration period to access all resources." %}
+                            </div>
+                        </div>
+                    </div>
+                    {% endif %}
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% if not has_access %}
+<div class="container">
+    <div class="row">
+        <div class="col-12">
+            <div class="alert alert-danger text-center">
+                <i class="fas fa-lock fa-2x mb-3"></i>
+                <h4>{% trans "Access Denied" %}</h4>
+                <p>{% trans "You don't have permission to view this course content." %}</p>
+            </div>
+        </div>
+    </div>
+</div>
+{% else %}
 
 <div class="container">
 
@@ -216,7 +286,7 @@
                         {% if lecturer.lecturer.picture %}
                         <img class="avatar avatar-lg" src="{{ lecturer.lecturer.picture.url }}" alt="">
                         {% endif %}
-                        <h5 class="fw-bold mb-0">{{ lecturer|title }}</h5>
+                        <h5 class="fw-bold mb-0">{{ lecturer.lecturer.get_full_name|title }}</h5>
                         <p class="mb-0">{{ lecturer.lecturer.email }}</p>
                         <p class="text-muted small">Donec sed odio dui. Etiam porta sem malesuada magna mollis euismod.</p>
                         <p>
@@ -237,5 +307,29 @@
         </div>
     </div>
 </div>
+
+{% endif %}
+
+<style>
+.stat-box h4 {
+    font-weight: bold;
+    font-size: 2rem;
+}
+
+.stat-box small {
+    font-size: 0.8rem;
+    color: #6c757d;
+}
+
+.table-shadow {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+@media (max-width: 768px) {
+    .stat-box h4 {
+        font-size: 1.5rem;
+    }
+}
+</style>
 
 {% endblock content %}

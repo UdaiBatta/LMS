@@ -35,6 +35,9 @@ def post_save_account_receiver(sender, instance, created, **kwargs):
         instance.set_password(password)
         instance.save(update_fields=["password"])
 
+        # Refresh instance to get updated username before sending email
+        instance.refresh_from_db()
+        
         # Email
         send_new_account_email(instance, password)
 
@@ -60,5 +63,8 @@ def post_save_account_receiver(sender, instance, created, **kwargs):
         instance.set_password(password)
         instance.save(update_fields=["password"])
 
+        # Refresh instance to get updated username before sending email
+        instance.refresh_from_db()
+        
         # Email
         send_new_account_email(instance, password)

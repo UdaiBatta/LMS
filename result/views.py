@@ -203,54 +203,92 @@ def add_score_for(request, id):
 @login_required
 @student_required
 def grade_result(request):
-    student = Student.objects.get(student__pk=request.user.id)
-    courses = TakenCourse.objects.filter(student__student__pk=request.user.id).filter(
-        course__level=student.level
-    )
-    # total_credit_in_semester = 0
-    results = Result.objects.filter(student__student__pk=request.user.id)
+    """
+    Display student grades and results.
+    Results are shown based on semester completion status.
+    """
+    try:
+        student = get_object_or_404(Student, student__pk=request.user.id)
+    except Student.DoesNotExist:
+        messages.error(request, "Student profile not found. Please contact administration.")
+        return HttpResponseRedirect(reverse_lazy('user_course_list'))
+    
+    # Check current semester status
+    current_semester = Semester.objects.filter(is_current_semester=True).first()
+    
+    # For now, show results for non-current semesters only
+    # This prevents showing results for active/ongoing semesters
+    if current_semester:
+        # Get courses excluding current active semester
+        courses = TakenCourse.objects.filter(
+            student=student,
+            course__level=student.level,
+        ).exclude(
+            course__semester=current_semester.semester
+        ).select_related('course').order_by('course__semester', 'course__year', 'course__title')
+        
+        # Get results excluding current semester
+        results = Result.objects.filter(
+            student=student,
+        ).exclude(
+            semester=current_semester.semester
+        ).order_by('session', 'semester')
+        
+        if not courses.exists() and not results.exists():
+            context = {
+                'student': student,
+                'no_results_available': True,
+                'current_semester': current_semester,
+                'message': f'No completed semester results available. Current semester ({current_semester.semester}) is still active.'
+            }
+            return render(request, 'result/grade_results.html', context)
+    else:
+        # No current semester, show all results
+        courses = TakenCourse.objects.filter(
+            student=student,
+            course__level=student.level,
+        ).select_related('course').order_by('course__semester', 'course__year', 'course__title')
+        
+        results = Result.objects.filter(
+            student=student
+        ).order_by('session', 'semester')
 
-    result_set = set()
-
+    # Calculate statistics
+    result_sessions = set()
     for result in results:
-        result_set.add(result.session)
+        if result.session:
+            result_sessions.add(result.session)
+    
+    sorted_result_sessions = sorted(result_sessions)
 
-    sorted_result = sorted(result_set)
+    # Calculate credits by semester
+    total_first_semester_credit = sum(
+        course.course.credit for course in courses 
+        if course.course.semester == "First"
+    )
+    total_second_semester_credit = sum(
+        course.course.credit for course in courses 
+        if course.course.semester == "Second"
+    )
 
-    total_first_semester_credit = 0
-    total_sec_semester_credit = 0
-    for i in courses:
-        if i.course.semester == "First":
-            total_first_semester_credit += int(i.course.credit)
-        if i.course.semester == "Second":
-            total_sec_semester_credit += int(i.course.credit)
-
-    previousCGPA = 0
-    # previousLEVEL = 0
-    # calculate_cgpa
-    for i in results:
-        previousLEVEL = i.level
-        try:
-            a = Result.objects.get(
-                student__student__pk=request.user.id,
-                level=previousLEVEL,
-                semester="Second",
-            )
-            previousCGPA = a.cgpa
-            break
-        except:
-            previousCGPA = 0
+    # Calculate previous CGPA
+    previous_cgpa = 0
+    if results.exists():
+        # Get the latest completed result
+        latest_result = results.order_by('-session', '-semester').first()
+        if latest_result:
+            previous_cgpa = latest_result.cgpa or 0
 
     context = {
         "courses": courses,
         "results": results,
-        "sorted_result": sorted_result,
+        "sorted_result": sorted_result_sessions,
         "student": student,
         "total_first_semester_credit": total_first_semester_credit,
-        "total_sec_semester_credit": total_sec_semester_credit,
-        "total_first_and_second_semester_credit": total_first_semester_credit
-        + total_sec_semester_credit,
-        "previousCGPA": previousCGPA,
+        "total_sec_semester_credit": total_second_semester_credit,
+        "previous_cgpa": previous_cgpa,
+        "current_semester": current_semester,
+        "total_first_and_second_semester_credit": total_first_semester_credit + total_second_semester_credit,
     }
 
     return render(request, "result/grade_results.html", context)
