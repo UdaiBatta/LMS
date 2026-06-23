@@ -14,6 +14,7 @@ from django.views.generic import (
 from django.db.models import Avg, Count
 
 from accounts.decorators import lecturer_required
+from course.access import lecturer_courses, require_lecturer_course, student_can_access_course
 from .forms import (
     EssayForm,
     MCQuestionForm,
@@ -46,16 +47,21 @@ class QuizCreateView(CreateView):
     def get_initial(self):
         initial = super().get_initial()
         course = get_object_or_404(Course, slug=self.kwargs["slug"])
+        require_lecturer_course(self.request.user, course)
         initial["course"] = course
         return initial
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["course"] = get_object_or_404(Course, slug=self.kwargs["slug"])
+        course = get_object_or_404(Course, slug=self.kwargs["slug"])
+        require_lecturer_course(self.request.user, course)
+        context["course"] = course
         return context
 
     def form_valid(self, form):
-        form.instance.course = get_object_or_404(Course, slug=self.kwargs["slug"])
+        course = get_object_or_404(Course, slug=self.kwargs["slug"])
+        require_lecturer_course(self.request.user, course)
+        form.instance.course = course
         with transaction.atomic():
             self.object = form.save()
             return redirect(
@@ -70,11 +76,16 @@ class QuizUpdateView(UpdateView):
     template_name = "quiz/quiz_form.html"
 
     def get_object(self, queryset=None):
-        return get_object_or_404(Quiz, pk=self.kwargs["pk"])
+        return get_object_or_404(
+            Quiz,
+            pk=self.kwargs["pk"],
+            course__slug=self.kwargs["slug"],
+            course__in=lecturer_courses(self.request.user),
+        )
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
-        context["course"] = get_object_or_404(Course, slug=self.kwargs["slug"])
+        context["course"] = self.object.course
         return context
 
     def form_valid(self, form):
@@ -86,7 +97,13 @@ class QuizUpdateView(UpdateView):
 @login_required
 @lecturer_required
 def quiz_delete(request, slug, pk):
-    quiz = get_object_or_404(Quiz, pk=pk)
+    from django.http import HttpResponseNotAllowed
+
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    quiz = get_object_or_404(
+        Quiz, pk=pk, course__slug=slug, course__in=lecturer_courses(request.user)
+    )
     quiz.delete()
     messages.success(request, "Quiz successfully deleted.")
     return redirect("quiz_index", slug=slug)
@@ -95,6 +112,11 @@ def quiz_delete(request, slug, pk):
 @login_required
 def quiz_list(request, slug):
     course = get_object_or_404(Course, slug=slug)
+    if request.user.is_student and not student_can_access_course(
+        request.user, course, require_enrollment=True
+    ):
+        messages.error(request, "You must be registered for this course to access its quizzes.")
+        return redirect("user_course_list")
     quizzes = Quiz.objects.filter(course=course).order_by("-timestamp")
     return render(
         request, "quiz/quiz_list.html", {"quizzes": quizzes, "course": course}
@@ -120,7 +142,10 @@ class MCQuestionCreate(CreateView):
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         context["course"] = get_object_or_404(Course, slug=self.kwargs["slug"])
-        context["quiz_obj"] = get_object_or_404(Quiz, id=self.kwargs["quiz_id"])
+        require_lecturer_course(self.request.user, context["course"])
+        context["quiz_obj"] = get_object_or_404(
+            Quiz, id=self.kwargs["quiz_id"], course=context["course"]
+        )
         context["quiz_questions_count"] = Question.objects.filter(
             quiz=self.kwargs["quiz_id"]
         ).count()
@@ -140,7 +165,9 @@ class MCQuestionCreate(CreateView):
                 self.object.save()
 
                 # Retrieve the Quiz instance
-                quiz = get_object_or_404(Quiz, id=self.kwargs["quiz_id"])
+                quiz = get_object_or_404(
+                    Quiz, id=self.kwargs["quiz_id"], course=context["course"]
+                )
 
                 # set the many-to-many relationship
                 self.object.quiz.add(quiz)
@@ -218,11 +245,19 @@ class QuizMarkingDetail(DetailView):
     model = Sitting
     template_name = "quiz/quiz_marking_detail.html"
 
+    def get_queryset(self):
+        queryset = Sitting.objects.filter(complete=True)
+        if not self.request.user.is_superuser:
+            queryset = queryset.filter(quiz__course__in=lecturer_courses(self.request.user))
+        return queryset.select_related("quiz", "course", "user")
+
     def post(self, request, *args, **kwargs):
         sitting = self.get_object()
         question_id = request.POST.get("qid")
         if question_id:
-            question = Question.objects.get_subclass(id=int(question_id))
+            question = get_object_or_404(
+                Question.objects, id=int(question_id), quiz=sitting.quiz
+            ).get_subclass()
             if int(question_id) in sitting.get_incorrect_questions:
                 sitting.remove_incorrect_question(question)
             else:
@@ -247,8 +282,15 @@ class QuizTake(FormView):
     result_template_name = "quiz/result.html"
 
     def dispatch(self, request, *args, **kwargs):
-        self.quiz = get_object_or_404(Quiz, slug=self.kwargs["slug"])
         self.course = get_object_or_404(Course, pk=self.kwargs["pk"])
+        self.quiz = get_object_or_404(Quiz, slug=self.kwargs["slug"], course=self.course)
+        if request.user.is_student and not student_can_access_course(
+            request.user, self.course, require_enrollment=True
+        ):
+            messages.error(request, "You must be registered for this course to take its quizzes.")
+            return redirect("user_course_list")
+        if request.user.is_lecturer:
+            require_lecturer_course(request.user, self.course)
         if not Question.objects.filter(quiz=self.quiz).exists():
             messages.warning(request, "This quiz has no questions available.")
             return redirect("quiz_index", slug=self.course.slug)
@@ -439,6 +481,9 @@ class QuizResultsView(DetailView):
     model = Quiz
     template_name = "quiz/quiz_results.html"
     context_object_name = "quiz"
+
+    def get_queryset(self):
+        return Quiz.objects.filter(course__in=lecturer_courses(self.request.user))
 
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)

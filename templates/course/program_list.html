@@ -54,7 +54,7 @@
                             </button>
                             <ul class="dropdown-menu">
                               <li><a class="dropdown-item" href="{% url 'edit_program' pk=program.pk %}"><i class="unstyled me-2 fas fa-edit"></i>{% trans 'Update' %}</a></li>
-                              <li><a class="dropdown-item text-danger" href="{% url 'program_delete' pk=program.pk %}"><i class="unstyled me-2 fas fa-trash-alt"></i>{% trans 'Delete' %}</a></li>
+                              <li><form method="post" action="{% url 'program_delete' pk=program.pk %}">{% csrf_token %}<button class="dropdown-item text-danger" type="submit"><i class="unstyled me-2 fas fa-trash-alt"></i>{% trans 'Delete' %}</button></form></li>
                             </ul>
                         </div>
                     </td>

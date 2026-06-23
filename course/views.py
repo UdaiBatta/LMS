@@ -3,12 +3,13 @@ from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
 from django.db.models import Sum
+from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
 from django.utils.decorators import method_decorator
 from django.views.generic import CreateView
 from django_filters.views import FilterView
 
-from accounts.decorators import lecturer_required, student_required
+from accounts.decorators import admin_required, lecturer_required, student_required
 from accounts.models import Student
 from core.models import Semester
 from course.filters import CourseAllocationFilter, ProgramFilter
@@ -28,6 +29,7 @@ from course.models import (
     UploadVideo,
 )
 from result.models import TakenCourse
+from course.access import require_lecturer_course, student_can_access_course
 
 
 # ########################################################
@@ -104,6 +106,8 @@ def program_edit(request, pk):
 @login_required
 @lecturer_required
 def program_delete(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
     program = get_object_or_404(Program, pk=pk)
     title = program.title
     program.delete()
@@ -119,6 +123,11 @@ def program_delete(request, pk):
 @login_required
 def course_single(request, slug):
     course = get_object_or_404(Course, slug=slug)
+    if request.user.is_student and not student_can_access_course(
+        request.user, course, require_enrollment=True
+    ):
+        messages.error(request, "You are not enrolled in this course.")
+        return redirect("user_course_list")
     files = Upload.objects.filter(course__slug=slug)
     videos = UploadVideo.objects.filter(course__slug=slug)
     lecturers = CourseAllocation.objects.filter(courses__pk=course.id)
@@ -137,7 +146,7 @@ def course_single(request, slug):
 
 
 @login_required
-@lecturer_required
+@admin_required
 def course_add(request, pk):
     program = get_object_or_404(Program, pk=pk)
     if request.method == "POST":
@@ -159,7 +168,7 @@ def course_add(request, pk):
 
 
 @login_required
-@lecturer_required
+@admin_required
 def course_edit(request, slug):
     course = get_object_or_404(Course, slug=slug)
     if request.method == "POST":
@@ -179,8 +188,10 @@ def course_edit(request, slug):
 
 
 @login_required
-@lecturer_required
+@admin_required
 def course_delete(request, slug):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
     course = get_object_or_404(Course, slug=slug)
     title = course.title
     program_id = course.program.id
@@ -194,7 +205,7 @@ def course_delete(request, slug):
 # ########################################################
 
 
-@method_decorator([login_required, lecturer_required], name="dispatch")
+@method_decorator([login_required, admin_required], name="dispatch")
 class CourseAllocationFormView(CreateView):
     form_class = CourseAllocationForm
     template_name = "course/course_allocation_form.html"
@@ -215,7 +226,7 @@ class CourseAllocationFormView(CreateView):
         return context
 
 
-@method_decorator([login_required, lecturer_required], name="dispatch")
+@method_decorator([login_required, admin_required], name="dispatch")
 class CourseAllocationFilterView(FilterView):
     filterset_class = CourseAllocationFilter
     template_name = "course/course_allocation_view.html"
@@ -227,7 +238,7 @@ class CourseAllocationFilterView(FilterView):
 
 
 @login_required
-@lecturer_required
+@admin_required
 def edit_allocated_course(request, pk):
     allocation = get_object_or_404(CourseAllocation, pk=pk)
     if request.method == "POST":
@@ -247,8 +258,10 @@ def edit_allocated_course(request, pk):
 
 
 @login_required
-@lecturer_required
+@admin_required
 def deallocate_course(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
     allocation = get_object_or_404(CourseAllocation, pk=pk)
     allocation.delete()
     messages.success(request, "Successfully deallocated courses.")
@@ -264,6 +277,7 @@ def deallocate_course(request, pk):
 @lecturer_required
 def handle_file_upload(request, slug):
     course = get_object_or_404(Course, slug=slug)
+    require_lecturer_course(request.user, course)
     if request.method == "POST":
         form = UploadFormFile(request.POST, request.FILES)
         if form.is_valid():
@@ -286,7 +300,8 @@ def handle_file_upload(request, slug):
 @lecturer_required
 def handle_file_edit(request, slug, file_id):
     course = get_object_or_404(Course, slug=slug)
-    upload = get_object_or_404(Upload, pk=file_id)
+    require_lecturer_course(request.user, course)
+    upload = get_object_or_404(Upload, pk=file_id, course=course)
     if request.method == "POST":
         form = UploadFormFile(request.POST, request.FILES, instance=upload)
         if form.is_valid():
@@ -306,7 +321,11 @@ def handle_file_edit(request, slug, file_id):
 @login_required
 @lecturer_required
 def handle_file_delete(request, slug, file_id):
-    upload = get_object_or_404(Upload, pk=file_id)
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    course = get_object_or_404(Course, slug=slug)
+    require_lecturer_course(request.user, course)
+    upload = get_object_or_404(Upload, pk=file_id, course=course)
     title = upload.title
     upload.delete()
     messages.success(request, f"{title} has been deleted.")
@@ -322,6 +341,7 @@ def handle_file_delete(request, slug, file_id):
 @lecturer_required
 def handle_video_upload(request, slug):
     course = get_object_or_404(Course, slug=slug)
+    require_lecturer_course(request.user, course)
     if request.method == "POST":
         form = UploadFormVideo(request.POST, request.FILES)
         if form.is_valid():
@@ -343,7 +363,10 @@ def handle_video_upload(request, slug):
 @login_required
 def handle_video_single(request, slug, video_slug):
     course = get_object_or_404(Course, slug=slug)
-    video = get_object_or_404(UploadVideo, slug=video_slug)
+    if request.user.is_student and not student_can_access_course(request.user, course):
+        messages.error(request, "You are not enrolled in this course.")
+        return redirect("user_course_list")
+    video = get_object_or_404(UploadVideo, slug=video_slug, course=course)
     return render(
         request,
         "upload/video_single.html",
@@ -355,7 +378,8 @@ def handle_video_single(request, slug, video_slug):
 @lecturer_required
 def handle_video_edit(request, slug, video_slug):
     course = get_object_or_404(Course, slug=slug)
-    video = get_object_or_404(UploadVideo, slug=video_slug)
+    require_lecturer_course(request.user, course)
+    video = get_object_or_404(UploadVideo, slug=video_slug, course=course)
     if request.method == "POST":
         form = UploadFormVideo(request.POST, request.FILES, instance=video)
         if form.is_valid():
@@ -375,7 +399,11 @@ def handle_video_edit(request, slug, video_slug):
 @login_required
 @lecturer_required
 def handle_video_delete(request, slug, video_slug):
-    video = get_object_or_404(UploadVideo, slug=video_slug)
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    course = get_object_or_404(Course, slug=slug)
+    require_lecturer_course(request.user, course)
+    video = get_object_or_404(UploadVideo, slug=video_slug, course=course)
     title = video.title
     video.delete()
     messages.success(request, f"{title} has been deleted.")
@@ -502,5 +530,3 @@ def user_course_list(request):
 
     # For other users
     return render(request, "course/user_course_list.html")
-
-

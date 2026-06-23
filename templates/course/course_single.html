@@ -91,10 +91,9 @@
                                         class="update" title="{% trans 'Edit' %}">
                                         <i class="fas fa-pencil-alt"></i>
                                     </a>
-                                    <a href="{% url 'upload_video_delete' slug=course.slug video_slug=video.slug %}"
-                                        class="delete" title="{% trans 'Delete' %}">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </a>
+                                    <form method="post" action="{% url 'upload_video_delete' slug=course.slug video_slug=video.slug %}" class="d-inline">{% csrf_token %}
+                                        <button type="submit" class="delete border-0 bg-transparent" title="{% trans 'Delete' %}"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
                                 </div>
                             </td>
                             {% endif %}
@@ -168,10 +167,9 @@
                                         class="update" title="{% trans 'Edit' %}">
                                         <i class="fas fa-pencil-alt"></i>
                                     </a>
-                                    <a href="{% url 'upload_file_delete' slug=course.slug file_id=file.pk %}"
-                                        class="delete" title="{% trans 'Delete' %}">
-                                        <i class="fas fa-trash-alt"></i>
-                                    </a>
+                                    <form method="post" action="{% url 'upload_file_delete' slug=course.slug file_id=file.pk %}" class="d-inline">{% csrf_token %}
+                                        <button type="submit" class="delete border-0 bg-transparent" title="{% trans 'Delete' %}"><i class="fas fa-trash-alt"></i></button>
+                                    </form>
                                 </div>
                             </td>
                             {% endif %}

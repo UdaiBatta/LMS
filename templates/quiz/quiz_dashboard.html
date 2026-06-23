@@ -129,10 +129,9 @@
                                             <a href="{% url 'quiz_update' quiz.course.slug quiz.pk %}" class="btn btn-outline-secondary btn-sm">
                                                 <i class="fas fa-edit"></i>
                                             </a>
-                                            <a href="{% url 'quiz_delete' quiz.course.slug quiz.pk %}" class="btn btn-outline-danger btn-sm"
-                                               onclick="return confirm('Are you sure you want to delete this quiz?')">
-                                                <i class="fas fa-trash"></i>
-                                            </a>
+                                            <form method="post" action="{% url 'quiz_delete' quiz.course.slug quiz.pk %}" class="d-inline">{% csrf_token %}
+                                                <button type="submit" class="btn btn-outline-danger btn-sm"><i class="fas fa-trash"></i></button>
+                                            </form>
                                         </div>
                                     </td>
                                 </tr>
