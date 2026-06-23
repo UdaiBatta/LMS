@@ -2,10 +2,12 @@ from django.conf import settings
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.core.paginator import Paginator
-from django.db.models import Sum
+from django.db.models import Count, Q, Sum
 from django.http import HttpResponseNotAllowed
 from django.shortcuts import get_object_or_404, redirect, render
+from django.urls import reverse
 from django.utils.decorators import method_decorator
+from django.utils.http import urlencode
 from django.views.generic import CreateView
 from django_filters.views import FilterView
 from django.utils.translation import gettext as _
@@ -225,7 +227,7 @@ class CourseAllocationFormView(CreateView):
         allocation, created = CourseAllocation.objects.get_or_create(lecturer=lecturer)
         allocation.courses.set(selected_courses)
         messages.success(
-            self.request, f"Courses allocated to {lecturer.get_full_name} successfully."
+            self.request, f"Courses allocated to {lecturer.get_full_name()} successfully."
         )
         return redirect("course_allocation_view")
 
@@ -275,6 +277,153 @@ def deallocate_course(request, pk):
     allocation.delete()
     messages.success(request, "Successfully deallocated courses.")
     return redirect("course_allocation_view")
+
+
+# ########################################################
+# Student Enrollment Views (allocate courses to students)
+# ########################################################
+
+
+@login_required
+@admin_required
+def course_enrollment_list(request):
+    """Overview of every course with its enrolled-student count."""
+    courses = (
+        Course.objects.select_related("program")
+        .annotate(enrolled_count=Count("taken_courses"))
+        .order_by("program__title", "level", "year", "semester", "title")
+    )
+    return render(
+        request,
+        "course/course_enrollment_list.html",
+        {"title": _("Student Enrollment"), "courses": courses},
+    )
+
+
+@login_required
+@admin_required
+def enroll_students(request):
+    """
+    Registrar-style enrollment for a single course.
+
+    Shows the class roster (enrolled students, with a Drop action) and an
+    "Add students" panel that searches the whole student body with filters
+    (program / level / name / ID). Students with recorded scores are protected
+    from accidental removal.
+    """
+    courses = Course.objects.select_related("program").order_by(
+        "program__title", "level", "year", "semester", "title"
+    )
+
+    course_id = request.POST.get("course") or request.GET.get("course")
+    selected_course = (
+        get_object_or_404(Course, pk=course_id) if course_id else None
+    )
+
+    # Filters for the "add students" panel
+    q = request.GET.get("q", "").strip()
+    filter_program = request.GET.get("program", "")
+    filter_level = request.GET.get("level", "")
+
+    if request.method == "POST" and selected_course:
+        action = request.POST.get("action")
+
+        if action == "add":
+            ids = [i for i in request.POST.getlist("students") if i.isdigit()]
+            added = 0
+            for student in Student.objects.filter(pk__in=ids):
+                _obj, created = TakenCourse.objects.get_or_create(
+                    student=student, course=selected_course
+                )
+                added += 1 if created else 0
+            if added:
+                messages.success(
+                    request,
+                    _("Added %(n)d student(s) to %(course)s.")
+                    % {"n": added, "course": selected_course.title},
+                )
+            else:
+                messages.info(request, _("No new students were added."))
+
+        elif action == "remove":
+            tc = (
+                TakenCourse.objects.filter(
+                    course=selected_course, student_id=request.POST.get("student")
+                )
+                .select_related("student__student")
+                .first()
+            )
+            if tc and tc.total and tc.total > 0:
+                messages.warning(
+                    request,
+                    _(
+                        "%(name)s has recorded scores and was not removed. "
+                        "Clear their scores first if you really want to drop them."
+                    )
+                    % {"name": tc.student.student.get_full_name()},
+                )
+            elif tc:
+                tc.delete()
+                messages.info(request, _("Student dropped from the course."))
+
+        # Preserve the course + active filters across the redirect
+        params = {"course": selected_course.pk}
+        for key in ("q", "program", "level"):
+            val = request.POST.get(key, "")
+            if val:
+                params[key] = val
+        return redirect(f"{reverse('enroll_students')}?{urlencode(params)}")
+
+    roster = []
+    candidates = []
+    total_candidates = 0
+    if selected_course:
+        roster = (
+            TakenCourse.objects.filter(course=selected_course)
+            .select_related("student__student", "student__program")
+            .order_by("student__student__first_name", "student__student__last_name")
+        )
+        enrolled_ids = roster.values_list("student_id", flat=True)
+
+        cand_qs = (
+            Student.objects.select_related("student", "program")
+            .exclude(pk__in=list(enrolled_ids))
+        )
+        # Default to the course's own program for convenience; "all" shows everyone
+        if filter_program == "":
+            filter_program = str(selected_course.program_id)
+        if filter_program and filter_program != "all":
+            cand_qs = cand_qs.filter(program_id=filter_program)
+        if filter_level:
+            cand_qs = cand_qs.filter(level=filter_level)
+        if q:
+            cand_qs = cand_qs.filter(
+                Q(student__first_name__icontains=q)
+                | Q(student__last_name__icontains=q)
+                | Q(student__username__icontains=q)
+            )
+        cand_qs = cand_qs.order_by("student__first_name", "student__last_name")
+        total_candidates = cand_qs.count()
+        candidates = cand_qs[:200]  # cap for performance; refine with filters
+
+    return render(
+        request,
+        "course/enroll_students.html",
+        {
+            "title": _("Enroll Students"),
+            "courses": courses,
+            "selected_course": selected_course,
+            "roster": roster,
+            "candidates": candidates,
+            "total_candidates": total_candidates,
+            "candidate_cap": 200,
+            "programs": Program.objects.order_by("title"),
+            "level_choices": settings.LEVEL_CHOICES,
+            "q": q,
+            "filter_program": filter_program,
+            "filter_level": filter_level,
+        },
+    )
 
 
 # ########################################################

@@ -33,6 +33,13 @@ urlpatterns = [
     path(
         "course/<int:pk>/deallocate/", views.deallocate_course, name="course_deallocate"
     ),
+    # Student enrollment urls
+    path(
+        "students/enrollment/",
+        views.course_enrollment_list,
+        name="course_enrollment_list",
+    ),
+    path("students/enroll/", views.enroll_students, name="enroll_students"),
     # File uploads urls
     path(
         "course/<slug>/documentations/upload/",

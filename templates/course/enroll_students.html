@@ -1,0 +1,184 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'course_enrollment_list' %}">{% trans 'Student Enrollment' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Enroll Students' %}</li>
+    </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<div class="title-1"><i class="fas fa-user-graduate"></i> {% trans 'Enroll Students' %}</div>
+
+<div class="card mb-3">
+    <div class="p-3">
+        <form action="" method="GET" id="course-picker">
+            <label for="course-select"><strong>{% trans 'Select a course' %}</strong></label>
+            <select class="form-control" name="course" id="course-select" onchange="document.getElementById('course-picker').submit();">
+                <option value="">{% trans '— choose a course —' %}</option>
+                {% for course in courses %}
+                <option value="{{ course.pk }}" {% if selected_course and course.pk == selected_course.pk %}selected{% endif %}>
+                    {{ course.program }} · {{ course.title }} ({{ course.code }}) — {% trans 'Year' %} {{ course.year }}, {{ course.get_semester_display }}
+                </option>
+                {% endfor %}
+            </select>
+        </form>
+    </div>
+</div>
+
+{% if selected_course %}
+<div class="row">
+    <!-- Class roster -->
+    <div class="col-lg-6 mb-3">
+        <div class="card h-100">
+            <p class="form-title">
+                <i class="fas fa-clipboard-list"></i>
+                {% trans 'Class Roster' %} — {{ roster|length }} {% trans 'enrolled' %}
+            </p>
+            <div class="p-3">
+                {% if roster %}
+                <div class="table-responsive" style="max-height: 520px; overflow-y: auto;">
+                    <table class="table table-light table-hover align-middle">
+                        <thead>
+                            <tr>
+                                <th>#</th>
+                                <th>{% trans 'Student' %}</th>
+                                <th>{% trans 'ID' %}</th>
+                                <th></th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for tc in roster %}
+                            <tr>
+                                <td>{{ forloop.counter }}</td>
+                                <td>{{ tc.student.student.get_full_name }}</td>
+                                <td>{{ tc.student.student.username }}</td>
+                                <td class="text-end">
+                                    <form action="" method="POST" onsubmit="return confirm('{% trans "Drop this student from the course?" %}');" style="display:inline;">
+                                        {% csrf_token %}
+                                        <input type="hidden" name="action" value="remove">
+                                        <input type="hidden" name="course" value="{{ selected_course.pk }}">
+                                        <input type="hidden" name="student" value="{{ tc.student.pk }}">
+                                        <input type="hidden" name="q" value="{{ q }}">
+                                        <input type="hidden" name="program" value="{{ filter_program }}">
+                                        <input type="hidden" name="level" value="{{ filter_level }}">
+                                        <button type="submit" class="btn btn-sm btn-outline-danger" title="{% trans 'Drop' %}">
+                                            <i class="fas fa-user-minus"></i>
+                                        </button>
+                                    </form>
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+                {% else %}
+                <p class="text-secondary m-0">{% trans 'No students enrolled yet. Add some from the panel on the right.' %}</p>
+                {% endif %}
+            </div>
+        </div>
+    </div>
+
+    <!-- Add students -->
+    <div class="col-lg-6 mb-3">
+        <div class="card h-100">
+            <p class="form-title"><i class="fas fa-user-plus"></i> {% trans 'Add Students' %}</p>
+            <div class="p-3">
+                <!-- Filters -->
+                <form action="" method="GET" class="row g-2 mb-3">
+                    <input type="hidden" name="course" value="{{ selected_course.pk }}">
+                    <div class="col-12">
+                        <input type="text" name="q" value="{{ q }}" class="form-control"
+                               placeholder="{% trans 'Search by name or student ID…' %}">
+                    </div>
+                    <div class="col-7">
+                        <select name="program" class="form-control">
+                            <option value="all" {% if filter_program == 'all' %}selected{% endif %}>{% trans 'All programs' %}</option>
+                            {% for p in programs %}
+                            <option value="{{ p.pk }}" {% if filter_program == p.pk|stringformat:'s' %}selected{% endif %}>{{ p.title }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-5">
+                        <select name="level" class="form-control">
+                            <option value="">{% trans 'Any level' %}</option>
+                            {% for value, label in level_choices %}
+                            <option value="{{ value }}" {% if filter_level == value %}selected{% endif %}>{{ label }}</option>
+                            {% endfor %}
+                        </select>
+                    </div>
+                    <div class="col-12">
+                        <button type="submit" class="btn btn-sm btn-dark"><i class="fas fa-filter"></i> {% trans 'Apply filters' %}</button>
+                        <a href="{% url 'enroll_students' %}?course={{ selected_course.pk }}&program=all" class="btn btn-sm btn-outline-secondary">{% trans 'Reset' %}</a>
+                    </div>
+                </form>
+
+                <!-- Add form -->
+                <form action="" method="POST">
+                    {% csrf_token %}
+                    <input type="hidden" name="action" value="add">
+                    <input type="hidden" name="course" value="{{ selected_course.pk }}">
+                    <input type="hidden" name="q" value="{{ q }}">
+                    <input type="hidden" name="program" value="{{ filter_program }}">
+                    <input type="hidden" name="level" value="{{ filter_level }}">
+
+                    {% if candidates %}
+                    <div class="d-flex align-items-center mb-2">
+                        <button type="button" class="btn btn-sm btn-outline-secondary me-2" onclick="toggleAll(true)">{% trans 'Select all' %}</button>
+                        <button type="button" class="btn btn-sm btn-outline-secondary" onclick="toggleAll(false)">{% trans 'Clear' %}</button>
+                        <span class="text-secondary ms-auto small">
+                            {{ total_candidates }} {% trans 'match(es)' %}{% if total_candidates > candidate_cap %} — {% trans 'showing first' %} {{ candidate_cap }}{% endif %}
+                        </span>
+                    </div>
+                    <div class="table-responsive" style="max-height: 430px; overflow-y: auto;">
+                        <table class="table table-light table-hover align-middle">
+                            <thead>
+                                <tr>
+                                    <th style="width: 40px;"></th>
+                                    <th>{% trans 'Student' %}</th>
+                                    <th>{% trans 'ID' %}</th>
+                                    <th>{% trans 'Program' %}</th>
+                                    <th>{% trans 'Level' %}</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for student in candidates %}
+                                <tr>
+                                    <td><input type="checkbox" name="students" value="{{ student.pk }}"></td>
+                                    <td>{{ student.student.get_full_name }}</td>
+                                    <td>{{ student.student.username }}</td>
+                                    <td>{{ student.program }}</td>
+                                    <td>{{ student.level }}</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    <button type="submit" class="btn btn-outline-primary mt-3">
+                        <i class="fas fa-plus"></i> {% trans 'Add selected students' %}
+                    </button>
+                    {% else %}
+                    <p class="text-secondary m-0">{% trans 'No matching students. Try widening the filters (e.g. choose "All programs").' %}</p>
+                    {% endif %}
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+{% endblock content %}
+
+{% block js %}
+<script>
+    function toggleAll(state) {
+        document.querySelectorAll('input[name="students"]').forEach(function (cb) { cb.checked = state; });
+    }
+</script>
+{% endblock js %}
