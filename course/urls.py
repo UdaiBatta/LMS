@@ -40,6 +40,12 @@ urlpatterns = [
         name="course_enrollment_list",
     ),
     path("students/enroll/", views.enroll_students, name="enroll_students"),
+    # Course package (curriculum) urls
+    path("packages/", views.package_list, name="package_list"),
+    path("packages/add/", views.package_add, name="package_add"),
+    path("packages/<int:pk>/edit/", views.package_edit, name="package_edit"),
+    path("packages/<int:pk>/allot/", views.package_allot, name="package_allot"),
+    path("packages/<int:pk>/delete/", views.package_delete, name="package_delete"),
     # File uploads urls
     path(
         "course/<slug>/documentations/upload/",

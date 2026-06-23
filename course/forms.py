@@ -1,6 +1,13 @@
 from django import forms
 from accounts.models import User
-from .models import Program, Course, CourseAllocation, Upload, UploadVideo
+from .models import (
+    Program,
+    Course,
+    CourseAllocation,
+    CoursePackage,
+    Upload,
+    UploadVideo,
+)
 
 
 class ProgramForm(forms.ModelForm):
@@ -75,6 +82,34 @@ class EditCourseAllocationForm(forms.ModelForm):
         #    user = kwargs.pop('user')
         super(EditCourseAllocationForm, self).__init__(*args, **kwargs)
         self.fields["lecturer"].queryset = User.objects.filter(is_lecturer=True)
+
+
+class CoursePackageForm(forms.ModelForm):
+    courses = forms.ModelMultipleChoiceField(
+        queryset=Course.objects.select_related("program").order_by(
+            "program__title", "year", "semester", "title"
+        ),
+        widget=forms.CheckboxSelectMultiple,
+        required=True,
+        help_text="Pick the subjects bundled in this package.",
+    )
+
+    class Meta:
+        model = CoursePackage
+        fields = [
+            "name",
+            "program",
+            "level",
+            "year",
+            "courses",
+            "auto_allot",
+            "is_active",
+        ]
+
+    def __init__(self, *args, **kwargs):
+        super().__init__(*args, **kwargs)
+        for field_name in ["name", "program", "level", "year"]:
+            self.fields[field_name].widget.attrs.update({"class": "form-control"})
 
 
 # Upload files to specific course

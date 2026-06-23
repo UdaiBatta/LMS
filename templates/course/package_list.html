@@ -1,0 +1,79 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Course Packages' %}</li>
+    </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<div class="d-flex align-items-center mb-2">
+    <div class="title-1 mb-0"><i class="fas fa-layer-group"></i> {% trans 'Course Packages' %}</div>
+    <a href="{% url 'package_add' %}" class="btn btn-outline-primary ms-auto">
+        <i class="fas fa-plus"></i> {% trans 'New package' %}
+    </a>
+</div>
+<p class="text-secondary">{% trans 'Bundle pre-selected subjects and auto-allot them to a program / level / year cohort.' %}</p>
+
+<div class="table-responsive">
+    <table class="table table-light table-hover align-middle">
+        <thead>
+            <tr>
+                <th>#</th>
+                <th>{% trans 'Package' %}</th>
+                <th>{% trans 'Cohort' %}</th>
+                <th>{% trans 'Subjects' %}</th>
+                <th>{% trans 'Matching students' %}</th>
+                <th>{% trans 'Auto' %}</th>
+                <th>{% trans 'Active' %}</th>
+                <th></th>
+            </tr>
+        </thead>
+        <tbody>
+            {% for row in rows %}
+            <tr>
+                <td>{{ forloop.counter }}</td>
+                <td>{{ row.package.name }}</td>
+                <td>{{ row.package.program }} · {{ row.package.get_level_display }} · {% trans 'Year' %} {{ row.package.year }}</td>
+                <td><span class="badge bg-secondary">{{ row.package.courses.count }}</span></td>
+                <td><span class="badge bg-info">{{ row.student_count }}</span></td>
+                <td>
+                    {% if row.package.auto_allot %}<i class="fas fa-check text-success"></i>{% else %}<i class="fas fa-times text-muted"></i>{% endif %}
+                </td>
+                <td>
+                    {% if row.package.is_active %}<span class="badge bg-success">{% trans 'Active' %}</span>{% else %}<span class="badge bg-secondary">{% trans 'Off' %}</span>{% endif %}
+                </td>
+                <td class="text-end" style="white-space: nowrap;">
+                    <form action="{% url 'package_allot' row.package.pk %}" method="POST" style="display:inline;"
+                          onsubmit="return confirm('{% trans "Allot these subjects to all matching students now?" %}');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-primary" title="{% trans 'Allot now' %}">
+                            <i class="fas fa-share"></i> {% trans 'Allot now' %}
+                        </button>
+                    </form>
+                    <a href="{% url 'package_edit' row.package.pk %}" class="btn btn-sm btn-outline-secondary"><i class="fas fa-edit"></i></a>
+                    <form action="{% url 'package_delete' row.package.pk %}" method="POST" style="display:inline;"
+                          onsubmit="return confirm('{% trans "Delete this package? (Enrollments already made are kept.)" %}');">
+                        {% csrf_token %}
+                        <button type="submit" class="btn btn-sm btn-outline-danger"><i class="fas fa-trash"></i></button>
+                    </form>
+                </td>
+            </tr>
+            {% empty %}
+            <tr>
+                <td colspan="8" class="text-center text-secondary">
+                    {% trans 'No packages yet.' %} <a href="{% url 'package_add' %}">{% trans 'Create one' %}</a>.
+                </td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+
+{% endblock content %}

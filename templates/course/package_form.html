@@ -1,0 +1,58 @@
+{% extends 'base.html' %}
+{% load i18n %}
+{% load crispy_forms_tags %}
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
+
+{% block content %}
+
+<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'package_list' %}">{% trans 'Course Packages' %}</a></li>
+        <li class="breadcrumb-item active" aria-current="page">{{ title }}</li>
+    </ol>
+</nav>
+
+{% include 'snippets/messages.html' %}
+
+<div class="row">
+    <div class="col-md-8 mx-auto">
+        <div class="card">
+            <p class="form-title">{{ title }}</p>
+            <div class="p-3">
+                <form action="" method="POST">{% csrf_token %}
+                    {{ form.name|as_crispy_field }}
+                    <div class="row">
+                        <div class="col-md-4">{{ form.program|as_crispy_field }}</div>
+                        <div class="col-md-4">{{ form.level|as_crispy_field }}</div>
+                        <div class="col-md-4">{{ form.year|as_crispy_field }}</div>
+                    </div>
+
+                    <label class="mt-2"><strong>{% trans 'Subjects in this package' %}</strong></label>
+                    <div class="border rounded p-2 mb-3" style="max-height: 320px; overflow-y: auto;">
+                        {{ form.courses }}
+                    </div>
+                    {% if form.courses.errors %}<div class="text-danger small mb-2">{{ form.courses.errors }}</div>{% endif %}
+
+                    <div class="form-check">
+                        {{ form.auto_allot }}
+                        <label class="form-check-label" for="{{ form.auto_allot.id_for_label }}">
+                            {% trans 'Auto-allot to new matching students' %}
+                        </label>
+                    </div>
+                    <div class="form-check mb-3">
+                        {{ form.is_active }}
+                        <label class="form-check-label" for="{{ form.is_active.id_for_label }}">
+                            {% trans 'Active' %}
+                        </label>
+                    </div>
+
+                    <input class="btn btn-outline-primary" type="submit" value="{% trans 'Save' %}">
+                    <a href="{% url 'package_list' %}" class="btn btn-outline-secondary">{% trans 'Cancel' %}</a>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+
+{% endblock content %}

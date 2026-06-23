@@ -214,6 +214,13 @@ class StudentManager(models.Manager):
 class Student(models.Model):
     student = models.OneToOneField(User, on_delete=models.CASCADE)
     level = models.CharField(max_length=25, choices=LEVEL, null=True)
+    year = models.IntegerField(
+        choices=settings.YEARS,
+        default=1,
+        null=True,
+        blank=True,
+        help_text="Current year of study",
+    )
     program = models.ForeignKey(Program, on_delete=models.CASCADE, null=True)
 
     objects = StudentManager()

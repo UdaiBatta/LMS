@@ -120,6 +120,64 @@ class CourseAllocation(models.Model):
         return reverse("edit_allocated_course", kwargs={"pk": self.pk})
 
 
+class CoursePackage(models.Model):
+    """
+    A curated set of subjects (courses) that is automatically allotted to a
+    cohort of students identified by program + level + year of study.
+    """
+
+    name = models.CharField(max_length=200)
+    program = models.ForeignKey(
+        Program, on_delete=models.CASCADE, related_name="packages"
+    )
+    level = models.CharField(max_length=25, choices=settings.LEVEL_CHOICES)
+    year = models.IntegerField(choices=settings.YEARS, default=1)
+    courses = models.ManyToManyField(Course, related_name="packages")
+    auto_allot = models.BooleanField(
+        default=True,
+        help_text=_("Automatically enroll new matching students into these subjects."),
+    )
+    is_active = models.BooleanField(default=True)
+
+    class Meta:
+        ordering = ("program__title", "level", "year", "name")
+
+    def __str__(self):
+        return f"{self.name} — {self.program} · {self.get_level_display()} · Year {self.year}"
+
+    def get_absolute_url(self):
+        return reverse("package_edit", kwargs={"pk": self.pk})
+
+    def matching_students(self):
+        """Students this package targets (program + level + year of study)."""
+        from accounts.models import Student
+
+        return Student.objects.filter(
+            program=self.program, level=self.level, year=self.year
+        )
+
+    def allot(self, students=None):
+        """
+        Enroll the given students (default: all matching students) into every
+        course in this package. Idempotent. Returns (#new_enrollments, #students).
+        """
+        from result.models import TakenCourse
+
+        if students is None:
+            students = self.matching_students()
+        students = list(students)
+        courses = list(self.courses.all())
+
+        created = 0
+        for student in students:
+            for course in courses:
+                _obj, was_created = TakenCourse.objects.get_or_create(
+                    student=student, course=course
+                )
+                created += 1 if was_created else 0
+        return created, len(students)
+
+
 class Upload(models.Model):
     title = models.CharField(max_length=100)
     course = models.ForeignKey(Course, on_delete=models.CASCADE)

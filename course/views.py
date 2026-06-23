@@ -19,6 +19,7 @@ from course.filters import CourseAllocationFilter, ProgramFilter
 from course.forms import (
     CourseAddForm,
     CourseAllocationForm,
+    CoursePackageForm,
     EditCourseAllocationForm,
     ProgramForm,
     UploadFormFile,
@@ -27,6 +28,7 @@ from course.forms import (
 from course.models import (
     Course,
     CourseAllocation,
+    CoursePackage,
     Program,
     Upload,
     UploadVideo,
@@ -424,6 +426,102 @@ def enroll_students(request):
             "filter_level": filter_level,
         },
     )
+
+
+# ########################################################
+# Course Package Views (pre-selected subjects auto-allotted to a cohort)
+# ########################################################
+
+
+@login_required
+@admin_required
+def package_list(request):
+    packages = (
+        CoursePackage.objects.select_related("program")
+        .prefetch_related("courses")
+        .all()
+    )
+    rows = []
+    for pkg in packages:
+        rows.append({"package": pkg, "student_count": pkg.matching_students().count()})
+    return render(
+        request,
+        "course/package_list.html",
+        {"title": _("Course Packages"), "rows": rows},
+    )
+
+
+@login_required
+@admin_required
+def package_add(request):
+    if request.method == "POST":
+        form = CoursePackageForm(request.POST)
+        if form.is_valid():
+            package = form.save()
+            messages.success(
+                request,
+                _("Package '%(name)s' created. Click 'Allot now' to enroll current students.")
+                % {"name": package.name},
+            )
+            return redirect("package_list")
+        messages.error(request, _("Correct the error(s) below."))
+    else:
+        form = CoursePackageForm()
+    return render(
+        request,
+        "course/package_form.html",
+        {"title": _("Create Course Package"), "form": form},
+    )
+
+
+@login_required
+@admin_required
+def package_edit(request, pk):
+    package = get_object_or_404(CoursePackage, pk=pk)
+    if request.method == "POST":
+        form = CoursePackageForm(request.POST, instance=package)
+        if form.is_valid():
+            form.save()
+            messages.success(request, _("Package updated."))
+            return redirect("package_list")
+        messages.error(request, _("Correct the error(s) below."))
+    else:
+        form = CoursePackageForm(instance=package)
+    return render(
+        request,
+        "course/package_form.html",
+        {"title": _("Edit Course Package"), "form": form, "package": package},
+    )
+
+
+@login_required
+@admin_required
+def package_allot(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    package = get_object_or_404(CoursePackage, pk=pk)
+    created, student_count = package.allot()
+    messages.success(
+        request,
+        _(
+            "Allotted '%(name)s': %(created)d new enrollment(s) across "
+            "%(students)d student(s)."
+        )
+        % {"name": package.name, "created": created, "students": student_count},
+    )
+    return redirect("package_list")
+
+
+@login_required
+@admin_required
+def package_delete(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
+    package = get_object_or_404(CoursePackage, pk=pk)
+    name = package.name
+    package.delete()
+    messages.success(request, _("Deleted package '%(name)s'.") % {"name": name})
+    return redirect("package_list")
 
 
 # ########################################################

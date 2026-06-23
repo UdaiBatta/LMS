@@ -1,4 +1,5 @@
 from django import forms
+from django.conf import settings
 from django.db import transaction
 from django.contrib.auth.forms import (
     UserCreationForm,
@@ -253,6 +254,16 @@ class StudentAddForm(UserCreationForm):
         label="Program",
     )
 
+    year = forms.TypedChoiceField(
+        choices=settings.YEARS,
+        coerce=int,
+        initial=1,
+        widget=forms.Select(
+            attrs={"class": "browser-default custom-select form-control"}
+        ),
+        label="Year of study",
+    )
+
     email = forms.EmailField(
         widget=forms.TextInput(
             attrs={
@@ -336,6 +347,7 @@ class StudentAddForm(UserCreationForm):
             Student.objects.create(
                 student=user,
                 level=self.cleaned_data.get("level"),
+                year=self.cleaned_data.get("year"),
                 program=self.cleaned_data.get("program"),
             )
 
@@ -458,7 +470,15 @@ class ProgramUpdateForm(forms.ModelForm):
 
     class Meta:
         model = Student
-        fields = ["program"]
+        fields = ["program", "level", "year"]
+        widgets = {
+            "level": forms.Select(
+                attrs={"class": "browser-default custom-select form-control"}
+            ),
+            "year": forms.Select(
+                attrs={"class": "browser-default custom-select form-control"}
+            ),
+        }
 
 
 class EmailValidationOnForgotPassword(PasswordResetForm):
