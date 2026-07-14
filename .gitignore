@@ -60,6 +60,9 @@ coverage.xml
 local_settings.py
 db.sqlite3
 db.sqlite3-journal
+*.sqlite3
+*.sqlite3-journal
+sent_emails/
 
 # Flask stuff:
 instance/
@@ -110,6 +113,14 @@ ENV/
 env.bak/
 venv.bak/
 
+# Editor and workspace settings
+.idea/
+.vscode/
+*.code-workspace
+*.swp
+*.swo
+*~
+
 # Spyder project settings
 .spyderproject
 .spyproject
@@ -149,4 +160,7 @@ media/result_sheet/*
 
 # Custom
 dump.rdb
-*.DS_Store
+.DS_Store
+Thumbs.db
+Desktop.ini
+node_modules/
