@@ -1,0 +1,88 @@
+<svg width="1200" height="630" viewBox="0 0 1200 630" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title description">
+  <title id="title">SkyLearn academic workflow overview</title>
+  <desc id="description">A SkyLearn overview showing a connected flow from courses and resources to assessment and results.</desc>
+  <defs>
+    <linearGradient id="background" x1="80" y1="40" x2="1150" y2="630" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#171E36"/>
+      <stop offset="1" stop-color="#263F7E"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="755" y1="109" x2="1096" y2="503" gradientUnits="userSpaceOnUse">
+      <stop stop-color="#5BD3C6"/>
+      <stop offset="1" stop-color="#A7E5DD"/>
+    </linearGradient>
+    <filter id="shadow" x="654" y="55" width="488" height="522" filterUnits="userSpaceOnUse" color-interpolation-filters="sRGB">
+      <feDropShadow dx="0" dy="18" stdDeviation="20" flood-color="#0B1125" flood-opacity=".26"/>
+    </filter>
+  </defs>
+
+  <rect width="1200" height="630" rx="28" fill="url(#background)"/>
+  <circle cx="1114" cy="56" r="212" stroke="#6B83C5" stroke-opacity=".26"/>
+  <circle cx="1114" cy="56" r="162" stroke="#6B83C5" stroke-opacity=".18"/>
+  <path d="M0 517C142 461 220 491 326 548C433 605 548 630 680 582" stroke="#6B83C5" stroke-opacity=".24" stroke-width="2"/>
+
+  <g transform="translate(76 72)">
+    <rect width="40" height="40" rx="12" fill="#F8D270"/>
+    <path d="M25.1 10.2C25.1 10.2 15.9 3.3 10.9 5.5C5.9 7.6 5.9 20.4 5.9 20.4M10.8 16.2C10.8 16.2 4 23.6 6.3 29.7C8.6 35.8 20.8 35 20.8 35M15 29.5C15 29.5 24.8 38 30.4 33.6C36 29.2 34.5 19.6 34.5 19.6M29 24C29 24 36.5 15.2 33.6 9.6C30.7 4 18.9 4.5 18.9 4.5" stroke="#285161" stroke-width="1.7" stroke-linecap="round"/>
+    <text x="54" y="29" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="28" font-weight="700" letter-spacing="-.7">SkyLearn</text>
+  </g>
+
+  <g transform="translate(76 190)">
+    <text fill="#A7E5DD" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700" letter-spacing="2.2">LEARNING MANAGEMENT SYSTEM</text>
+    <text y="62" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="53" font-weight="700" letter-spacing="-2">Academic work,</text>
+    <text y="122" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="53" font-weight="700" letter-spacing="-2">all in one place.</text>
+    <text y="175" fill="#C4CEE8" font-family="Arial, Helvetica, sans-serif" font-size="19">SkyLearn connects the work that keeps a school moving:</text>
+    <text y="203" fill="#C4CEE8" font-family="Arial, Helvetica, sans-serif" font-size="19">teaching, learning, assessment, and administration.</text>
+
+    <g transform="translate(0 255)">
+      <rect width="132" height="72" rx="12" fill="#FFFFFF" fill-opacity=".1" stroke="#FFFFFF" stroke-opacity=".16"/>
+      <text x="18" y="28" fill="#A7E5DD" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="1.1">COURSES</text>
+      <text x="18" y="53" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Organize</text>
+      <rect x="150" width="132" height="72" rx="12" fill="#FFFFFF" fill-opacity=".1" stroke="#FFFFFF" stroke-opacity=".16"/>
+      <text x="168" y="28" fill="#A7E5DD" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="1.1">ASSESSMENT</text>
+      <text x="168" y="53" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Review</text>
+      <rect x="300" width="132" height="72" rx="12" fill="#FFFFFF" fill-opacity=".1" stroke="#FFFFFF" stroke-opacity=".16"/>
+      <text x="318" y="28" fill="#A7E5DD" font-family="Arial, Helvetica, sans-serif" font-size="12" font-weight="700" letter-spacing="1.1">RESULTS</text>
+      <text x="318" y="53" fill="white" font-family="Arial, Helvetica, sans-serif" font-size="18" font-weight="700">Track</text>
+    </g>
+  </g>
+
+  <g filter="url(#shadow)">
+    <rect x="702" y="86" width="400" height="458" rx="22" fill="#F8FAFD"/>
+    <rect x="702" y="86" width="400" height="58" rx="22" fill="#FFFFFF"/>
+    <path d="M702 122C702 109.85 711.85 100 724 100H1080C1092.15 100 1102 109.85 1102 122V144H702V122Z" fill="#FFFFFF"/>
+    <circle cx="737" cy="115" r="7" fill="#E5EAF2"/>
+    <rect x="759" y="109" width="116" height="12" rx="6" fill="#1D2E5B" fill-opacity=".88"/>
+    <rect x="1019" y="107" width="48" height="16" rx="8" fill="#E7F6F4"/>
+    <text x="1029" y="119" fill="#247E75" font-family="Arial, Helvetica, sans-serif" font-size="9" font-weight="700">ACTIVE</text>
+
+    <text x="734" y="183" fill="#60708F" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700" letter-spacing="1.3">ACADEMIC WORKFLOW</text>
+    <text x="734" y="216" fill="#192544" font-family="Arial, Helvetica, sans-serif" font-size="23" font-weight="700">Computer Science · Year 2</text>
+    <text x="734" y="241" fill="#7B879E" font-family="Arial, Helvetica, sans-serif" font-size="14">Semester 1  /  2026–27</text>
+
+    <line x1="762" y1="294" x2="762" y2="449" stroke="#C9D4E6" stroke-width="2" stroke-dasharray="3 5"/>
+    <circle cx="762" cy="294" r="12" fill="url(#accent)"/>
+    <circle cx="762" cy="346" r="12" fill="#BFD0FF"/>
+    <circle cx="762" cy="398" r="12" fill="#F8D270"/>
+    <circle cx="762" cy="450" r="12" fill="#9DDBD4"/>
+
+    <rect x="792" y="273" width="276" height="42" rx="10" fill="#FFFFFF"/>
+    <text x="808" y="291" fill="#1D2E5B" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700">Course delivery</text>
+    <text x="808" y="306" fill="#7B879E" font-family="Arial, Helvetica, sans-serif" font-size="11">Modules and registered student access</text>
+
+    <rect x="792" y="325" width="276" height="42" rx="10" fill="#FFFFFF"/>
+    <text x="808" y="343" fill="#1D2E5B" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700">Learning resources</text>
+    <text x="808" y="358" fill="#7B879E" font-family="Arial, Helvetica, sans-serif" font-size="11">Files, videos, and course material</text>
+
+    <rect x="792" y="377" width="276" height="42" rx="10" fill="#FFFFFF"/>
+    <text x="808" y="395" fill="#1D2E5B" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700">Assessment</text>
+    <text x="808" y="410" fill="#7B879E" font-family="Arial, Helvetica, sans-serif" font-size="11">Quizzes, marking, and score records</text>
+
+    <rect x="792" y="429" width="276" height="42" rx="10" fill="#FFFFFF"/>
+    <text x="808" y="447" fill="#1D2E5B" font-family="Arial, Helvetica, sans-serif" font-size="13" font-weight="700">Results</text>
+    <text x="808" y="462" fill="#7B879E" font-family="Arial, Helvetica, sans-serif" font-size="11">Grades and academic progress</text>
+
+    <rect x="734" y="491" width="334" height="25" rx="12.5" fill="#EAF6F5"/>
+    <circle cx="751" cy="503.5" r="4" fill="#309F94"/>
+    <text x="763" y="507" fill="#247E75" font-family="Arial, Helvetica, sans-serif" font-size="11" font-weight="700">Connected from enrolment through to results</text>
+  </g>
+</svg>

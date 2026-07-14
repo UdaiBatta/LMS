@@ -2,7 +2,7 @@
 
 SkyLearn LMS is a Django-based learning management system for schools, colleges, and training institutes. It helps manage users, courses, enrollments, quizzes, student results, uploaded learning materials, and basic payment screens from one web application.
 
-![SkyLearn dashboard](static/img/screenshot.png)
+![SkyLearn academic workflow overview](static/img/readme-overview.svg)
 
 ## Features
 
