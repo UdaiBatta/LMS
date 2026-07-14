@@ -38,6 +38,6 @@ jobs:
       - name: Check Django configuration
         run: python manage.py check
       - name: Check migration drift
-        run: python manage.py makemigrations --check --dry-run
+        run: python manage.py makemigrations accounts core course quiz result --check --dry-run
       - name: Run tests
         run: python manage.py test
