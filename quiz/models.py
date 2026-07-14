@@ -416,7 +416,7 @@ class MCQuestion(Question):
 
     def check_if_correct(self, guess):
         try:
-            answer = Choice.objects.get(id=int(guess))
+            answer = Choice.objects.get(id=int(guess), question=self)
             return answer.correct
         except (Choice.DoesNotExist, ValueError):
             return False
@@ -437,7 +437,7 @@ class MCQuestion(Question):
 
     def answer_choice_to_string(self, guess):
         try:
-            return Choice.objects.get(id=int(guess)).choice_text
+            return Choice.objects.get(id=int(guess), question=self).choice_text
         except (Choice.DoesNotExist, ValueError):
             return ""
 

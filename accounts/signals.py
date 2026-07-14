@@ -39,15 +39,17 @@ def post_save_account_receiver(sender, instance, created, **kwargs):
         instance.refresh_from_db()
         
         # Email
-        send_new_account_email(instance, password)
+        email_sent = send_new_account_email(instance, password)
 
         # Cache last created student info
         cache.set(
-            "last_student_credentials",
+            f"student_credentials:{instance.pk}",
             {
                 "username": username,
                 "password": password,
                 "student_name": instance.get_full_name(),
+                "student_email": instance.email,
+                "email_status": "sent" if email_sent else "failed",
             },
             timeout=300,
         )

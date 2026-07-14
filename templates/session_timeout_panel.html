@@ -139,6 +139,7 @@ document.addEventListener('DOMContentLoaded', function() {
 function initializeSessionMonitoring() {
     // Check session status every 30 seconds
     sessionInterval = setInterval(checkSessionStatus, 30000);
+    checkSessionStatus();
     
     // Update floating timer every minute
     setInterval(updateFloatingTimer, 60000);
@@ -160,10 +161,15 @@ function checkSessionStatus() {
     })
     .then(response => response.json())
     .then(data => {
-        if (data.time_remaining <= sessionWarningTime && !warningShown) {
-            showTimeoutWarning(data.time_remaining);
-        } else if (data.time_remaining <= 0) {
+        if (!data.authenticated) {
             showSessionExpired();
+            return;
+        }
+        if (data.time_remaining <= 0) {
+            showSessionExpired();
+            return;
+        } else if (data.time_remaining <= sessionWarningTime && !warningShown) {
+            showTimeoutWarning(data.time_remaining);
         }
         
         updateSessionDisplay(data.time_remaining);

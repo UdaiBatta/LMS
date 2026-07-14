@@ -787,7 +787,7 @@ msgid "School:"
 msgstr ""
 
 #: templates/accounts/profile.html:85 templates/pdf/profile_single.html:76
-msgid "Hawas Preparatory School"
+msgid "Sat Paul Mittal Preparatory School"
 msgstr ""
 
 #: templates/accounts/profile.html:86 templates/pdf/profile_single.html:77

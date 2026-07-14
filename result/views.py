@@ -5,6 +5,7 @@ from django.urls import reverse_lazy
 from django.conf import settings
 from django.contrib.auth.decorators import login_required
 from django.core.files.storage import FileSystemStorage
+from django.db import transaction
 from django.http import HttpResponse
 
 from reportlab.platypus import (
@@ -24,8 +25,10 @@ from reportlab.lib import colors
 
 from core.models import Session, Semester
 from course.models import Course
+from course.access import lecturer_courses
 from accounts.models import Student
 from accounts.decorators import lecturer_required, student_required
+from .forms import ScoreEntryForm
 from .models import TakenCourse, Result
 
 
@@ -43,9 +46,13 @@ def add_score(request):
     to him for score entry. in a specific semester and session
     """
     current_session = Session.objects.filter(is_current_session=True).first()
-    current_semester = Semester.objects.filter(
-        is_current_semester=True, session=current_session
-    ).first()
+    current_semester = (
+        Semester.objects.filter(
+            is_current_semester=True, session=current_session
+        ).first()
+        if current_session
+        else None
+    )
 
     if not current_session or not current_semester:
         messages.error(request, "No active semester found.")
@@ -54,9 +61,9 @@ def add_score(request):
     # semester = Course.objects.filter(
     # allocated_course__lecturer__pk=request.user.id,
     # semester=current_semester)
-    courses = Course.objects.filter(
-        allocated_course__lecturer__pk=request.user.id
-    ).filter(semester=current_semester)
+    courses = lecturer_courses(request.user).filter(
+        semester=current_semester.semester
+    )
     context = {
         "current_session": current_session,
         "current_semester": current_semester,
@@ -72,128 +79,104 @@ def add_score_for(request, id):
     Shows a page where a lecturer will add score for students that
     are taking courses allocated to him in a specific semester and session
     """
-    current_session = Session.objects.get(is_current_session=True)
-    current_semester = get_object_or_404(
-        Semester, is_current_semester=True, session=current_session
+    current_session = Session.objects.filter(is_current_session=True).first()
+    current_semester = (
+        Semester.objects.filter(
+            is_current_semester=True, session=current_session
+        ).first()
+        if current_session
+        else None
     )
-    if request.method == "GET":
-        courses = Course.objects.filter(
-            allocated_course__lecturer__pk=request.user.id
-        ).filter(semester=current_semester)
-        course = Course.objects.get(pk=id)
-        # myclass = Class.objects.get(lecturer__pk=request.user.id)
-        # myclass = get_object_or_404(Class, lecturer__pk=request.user.id)
+    if not current_session or not current_semester:
+        messages.error(request, "No active semester found.")
+        return HttpResponseRedirect(reverse_lazy("add_score"))
 
-        # students = TakenCourse.objects.filter(
-        # course__allocated_course__lecturer__pk=request.user.id).filter(
-        #  course__id=id).filter(
-        #  student__allocated_student__lecturer__pk=request.user.id).filter(
-        #  course__semester=current_semester)
-        students = (
-            TakenCourse.objects.filter(
-                course__allocated_course__lecturer__pk=request.user.id
-            )
-            .filter(course__id=id)
-            .filter(course__semester=current_semester)
-        )
-        context = {
-            "title": "Submit Score",
-            "courses": courses,
-            "course": course,
-            # "myclass": myclass,
-            "students": students,
-            "current_session": current_session,
-            "current_semester": current_semester,
-        }
+    courses = lecturer_courses(request.user).filter(
+        semester=current_semester.semester
+    )
+    course = get_object_or_404(courses, pk=id)
+    students = (
+        TakenCourse.objects.filter(course=course)
+        .select_related("student__student", "student__program", "course")
+        .order_by("student__student__first_name", "student__student__last_name")
+    )
+    context = {
+        "title": "Submit Score",
+        "courses": courses,
+        "course": course,
+        "students": students,
+        "current_session": current_session,
+        "current_semester": current_semester,
+    }
+
+    if request.method == "GET":
         return render(request, "result/add_score_for.html", context)
 
-    if request.method == "POST":
-        ids = ()
-        data = request.POST.copy()
-        data.pop("csrfmiddlewaretoken", None)  # remove csrf_token
-        for key in data.keys():
-            ids = ids + (
-                str(key),
-            )  # gather all the all students id (i.e the keys) in a tuple
-        for s in range(
-            0, len(ids)
-        ):  # iterate over the list of student ids gathered above
-            student = TakenCourse.objects.get(id=ids[s])
-            # print(student)
-            # print(student.student)
-            # print(student.student.program.id)
-            courses = (
-                Course.objects.filter(level=student.student.level)
-                .filter(program__pk=student.student.program.id)
-                .filter(semester=current_semester)
-            )  # all courses of a specific level in current semester
-            total_credit_in_semester = 0
-            for i in courses:
-                if i == courses.count():
-                    break
-                total_credit_in_semester += int(i.credit)
-            score = data.getlist(
-                ids[s]
-            )  # get list of score for current student in the loop
-            assignment = score[
-                0
-            ]  # subscript the list to get the fisrt value > ca score
-            mid_exam = score[1]  # do the same for exam score
-            quiz = score[2]
-            attendance = score[3]
-            final_exam = score[4]
-            obj = TakenCourse.objects.get(pk=ids[s])  # get the current student data
-            obj.assignment = assignment  # set current student assignment score
-            obj.mid_exam = mid_exam  # set current student mid_exam score
-            obj.quiz = quiz  # set current student quiz score
-            obj.attendance = attendance  # set current student attendance score
-            obj.final_exam = final_exam  # set current student final_exam score
+    posted_ids = {
+        int(key) for key in request.POST.keys() if key.isdigit()
+    }
+    allowed_ids = set(students.values_list("pk", flat=True))
+    if not posted_ids:
+        messages.warning(request, "There are no student scores to update.")
+        return render(request, "result/add_score_for.html", context)
+    if not posted_ids.issubset(allowed_ids):
+        messages.error(request, "One or more submitted score records are invalid.")
+        return render(request, "result/add_score_for.html", context, status=400)
 
-            obj.total = obj.get_total()
-            obj.grade = obj.get_grade()
+    score_fields = (
+        "assignment",
+        "mid_exam",
+        "quiz",
+        "attendance",
+        "final_exam",
+    )
+    validated_rows = []
+    for taken_course in students.filter(pk__in=posted_ids):
+        values = request.POST.getlist(str(taken_course.pk))
+        if len(values) != len(score_fields):
+            messages.error(
+                request,
+                f"Scores for {taken_course.student} are incomplete.",
+            )
+            return render(request, "result/add_score_for.html", context, status=400)
+        score_form = ScoreEntryForm(dict(zip(score_fields, values)))
+        if not score_form.is_valid():
+            messages.error(
+                request,
+                f"Scores for {taken_course.student} are invalid: "
+                + " ".join(
+                    error
+                    for errors in score_form.errors.values()
+                    for error in errors
+                ),
+            )
+            return render(request, "result/add_score_for.html", context, status=400)
+        validated_rows.append((taken_course, score_form.cleaned_data))
 
-            # obj.total = obj.get_total(assignment, mid_exam, quiz, attendance, final_exam)
-            # obj.grade = obj.get_grade(assignment, mid_exam, quiz, attendance, final_exam)
+    with transaction.atomic():
+        for taken_course, score_data in validated_rows:
+            for field in score_fields:
+                setattr(taken_course, field, score_data[field])
+            taken_course.save()
 
-            obj.point = obj.get_point()
-            obj.comment = obj.get_comment()
-            # obj.carry_over(obj.grade)
-            # obj.is_repeating()
-            obj.save()
-            gpa = obj.calculate_gpa()
-            cgpa = obj.calculate_cgpa()
-
-            try:
-                a = Result.objects.get(
-                    student=student.student,
-                    semester=current_semester,
-                    session=current_session,
-                    level=student.student.level,
+            result = Result.objects.filter(
+                student=taken_course.student,
+                semester=current_semester.semester,
+                session=current_session.session,
+                level=taken_course.student.level,
+            ).first()
+            if result is None:
+                result = Result(
+                    student=taken_course.student,
+                    semester=current_semester.semester,
+                    session=current_session.session,
+                    level=taken_course.student.level,
                 )
-                a.gpa = gpa
-                a.cgpa = cgpa
-                a.save()
-            except:
-                Result.objects.get_or_create(
-                    student=student.student,
-                    gpa=gpa,
-                    semester=current_semester,
-                    session=current_session,
-                    level=student.student.level,
-                )
+            result.gpa = taken_course.calculate_gpa()
+            result.cgpa = taken_course.calculate_cgpa()
+            result.save()
 
-            # try:
-            #     a = Result.objects.get(student=student.student,
-            # semester=current_semester, level=student.student.level)
-            #     a.gpa = gpa
-            #     a.cgpa = cgpa
-            #     a.save()
-            # except:
-            #     Result.objects.get_or_create(student=student.student, gpa=gpa,
-            # semester=current_semester, level=student.student.level)
-
-        messages.success(request, "Successfully Recorded! ")
-        return HttpResponseRedirect(reverse_lazy("add_score_for", kwargs={"id": id}))
+    messages.success(request, "Scores recorded successfully.")
     return HttpResponseRedirect(reverse_lazy("add_score_for", kwargs={"id": id}))
 
 

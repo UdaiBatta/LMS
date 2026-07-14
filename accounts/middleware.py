@@ -3,7 +3,6 @@ Session timeout middleware for automatic user logout after inactivity.
 """
 import time
 from django.contrib.auth import logout
-from django.contrib.auth.decorators import login_required
 from django.utils.deprecation import MiddlewareMixin
 from django.conf import settings
 from django.contrib import messages
@@ -27,6 +26,10 @@ class SessionTimeoutMiddleware(MiddlewareMixin):
         # Only process authenticated users
         if not request.user.is_authenticated:
             return None
+
+        # Status polling must observe inactivity without becoming activity
+        # itself. Explicit extension is handled by the endpoint.
+        is_timeout_check = request.path == reverse("session_timeout_check")
         
         # Get the last activity time from session
         last_activity = request.session.get('last_activity')
@@ -52,17 +55,21 @@ class SessionTimeoutMiddleware(MiddlewareMixin):
                 request, 
                 'Your session has expired due to inactivity. Please log in again.'
             )
-            # Redirect to login page
+            if is_timeout_check:
+                return None
             return redirect('login')
-        
-        # Update last activity time
-        request.session['last_activity'] = current_time
+
+        if not is_timeout_check:
+            request.session['last_activity'] = current_time
         return None
     
     def process_response(self, request, response):
         """
         Update the session's last activity time for authenticated users.
         """
-        if request.user.is_authenticated:
+        if (
+            request.user.is_authenticated
+            and request.path != reverse("session_timeout_check")
+        ):
             request.session['last_activity'] = time.time()
         return response

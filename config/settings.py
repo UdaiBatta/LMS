@@ -11,8 +11,36 @@ https://docs.djangoproject.com/en/2.2/ref/settings/
 """
 
 import os
+import sys
 from decouple import config
 from django.utils.translation import gettext_lazy as _
+
+
+def environment_bool(value):
+    """Parse booleans while tolerating common environment-mode labels."""
+    if isinstance(value, bool):
+        return value
+    normalized = str(value).strip().lower()
+    if normalized in {"1", "true", "yes", "on", "development", "debug"}:
+        return True
+    if normalized in {"0", "false", "no", "off", "production", "prod", "release"}:
+        return False
+    raise ValueError(
+        f"Invalid boolean value {value!r}; use true/false or development/production."
+    )
+
+
+# Windows consoles default to cp1252, which can't encode the emoji used in
+# HTML email templates (e.g. new_student/lecturer_account_confirmation.html).
+# That crashes the background email-sending thread (accounts/utils.py
+# EmailThread) with UnicodeEncodeError whenever EMAIL_BACKEND is the console
+# backend, silently dropping credential emails.
+if sys.platform == "win32":
+    for _stream in (sys.stdout, sys.stderr):
+        try:
+            _stream.reconfigure(encoding="utf-8", errors="replace")
+        except (AttributeError, ValueError):
+            pass
 
 # Build paths inside the project like this: os.path.join(BASE_DIR, ...)
 BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -24,7 +52,7 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = config("SECRET_KEY")
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config("DEBUG", default=False, cast=bool)
+DEBUG = config("DEBUG", default=False, cast=environment_bool)
 
 ALLOWED_HOSTS = [
     host.strip()
@@ -84,8 +112,8 @@ MIDDLEWARE = [
     "django.middleware.common.CommonMiddleware",
     "django.middleware.csrf.CsrfViewMiddleware",
     "django.contrib.auth.middleware.AuthenticationMiddleware",
-    "accounts.middleware.SessionTimeoutMiddleware",  # Custom session timeout middleware
     "django.contrib.messages.middleware.MessageMiddleware",
+    "accounts.middleware.SessionTimeoutMiddleware",  # Custom session timeout middleware
     "django.middleware.clickjacking.XFrameOptionsMiddleware",
     "django.middleware.locale.LocaleMiddleware",
 ]
@@ -235,8 +263,8 @@ EMAIL_FILE_PATH = os.path.join(BASE_DIR, "sent_emails")
 CRISPY_ALLOWED_TEMPLATE_PACKS = "bootstrap5"
 CRISPY_TEMPLATE_PACK = "bootstrap5"
 
-LOGIN_REDIRECT_URL = "/"
-LOGOUT_REDIRECT_URL = "/"
+LOGIN_REDIRECT_URL = "home"
+LOGOUT_REDIRECT_URL = "landing"
 
 # Session timeout configuration
 SESSION_COOKIE_AGE = config("SESSION_COOKIE_AGE", default=600, cast=int)
@@ -288,6 +316,7 @@ LOGGING = {
 # WhiteNoise configuration
 STATICFILES_STORAGE = "whitenoise.storage.CompressedManifestStaticFilesStorage"
 
+SCHOOL_NAME = config("SCHOOL_NAME", default="Satpaul mittal Preparatory school")
 STUDENT_ID_PREFIX = config("STUDENT_ID_PREFIX", "ugr")
 LECTURER_ID_PREFIX = config("LECTURER_ID_PREFIX", "lec")
 

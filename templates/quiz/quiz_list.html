@@ -5,6 +5,7 @@
 {% load static %}
 
 {% block content %}
+{% trans 'Quiz' as quiz_label %}
 
 <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
     <ol class="breadcrumb">
@@ -20,7 +21,20 @@
     </ol>
 </nav>
 
-<div class="container-fluid mt-4">
+<div class="page-header mt-4">
+    <div>
+        <div class="section-kicker">{{ course.code }}</div>
+        <h1>{% trans 'Quizzes' %}</h1>
+        <p>{{ course.title }}</p>
+    </div>
+    {% if request.user.is_superuser or request.user.is_lecturer %}
+    <a class="btn btn-primary" href="{% url 'quiz_create' course.slug %}">
+        <i class="fas fa-plus" aria-hidden="true"></i>{% trans 'Add quiz' %}
+    </a>
+    {% endif %}
+</div>
+
+<div class="container-fluid px-0">
     <div class="row">
         <div class="col-12">
             <div class="card shadow-sm">
@@ -28,11 +42,6 @@
                     <h4 class="card-title mb-0">
                         <i class="fas fa-question-circle me-2"></i>{% trans 'Quizzes' %} - {{ course.title }}
                     </h4>
-                    {% if request.user.is_superuser or request.user.is_lecturer %}
-                    <a class="btn btn-light btn-sm" href="{% url 'quiz_create' course.slug %}">
-                        <i class="fas fa-plus me-1"></i>{% trans 'Add Quiz' %}
-                    </a>
-                    {% endif %}
                 </div>
                 
                 <div class="card-body">
@@ -57,10 +66,10 @@
                                 <div class="card h-100 quiz-card">
                                     <div class="card-header bg-info text-white d-flex justify-content-between align-items-center">
                                         <h6 class="card-title mb-0">
-                                            <i class="fas fa-quiz me-1"></i>{{ quiz.category|title }}
+                                            <i class="fas fa-circle-question me-1"></i>{{ quiz.category|default:quiz_label|title }}
                                         </h6>
                                         <span class="badge bg-light text-dark">
-                                            {{ quiz.get_questions.count }} {% trans 'Questions' %}
+                                            {{ quiz.question_count }} {% trans 'Questions' %}
                                         </span>
                                     </div>
                                     
@@ -180,26 +189,26 @@
                                         <div class="row">
                                             <div class="col-md-3 text-center">
                                                 <div class="stat-item">
-                                                    <h4 class="text-primary">{{ quizzes.count }}</h4>
+                                                    <h4 class="text-primary">{{ quizzes|length }}</h4>
                                                     <small class="text-muted">{% trans "Total Quizzes" %}</small>
                                                 </div>
                                             </div>
                                             <div class="col-md-3 text-center">
                                                 <div class="stat-item">
-                                                    <h4 class="text-success">{{ quizzes|length }}</h4>
-                                                    <small class="text-muted">{% trans "Active Quizzes" %}</small>
+                                                    <h4 class="text-success">{{ published_quiz_count }}</h4>
+                                                    <small class="text-muted">{% trans "Published" %}</small>
                                                 </div>
                                             </div>
                                             <div class="col-md-3 text-center">
                                                 <div class="stat-item">
-                                                    <h4 class="text-info">-</h4>
+                                                    <h4 class="text-info">{{ question_total }}</h4>
                                                     <small class="text-muted">{% trans "Total Questions" %}</small>
                                                 </div>
                                             </div>
                                             <div class="col-md-3 text-center">
                                                 <div class="stat-item">
-                                                    <h4 class="text-warning">-</h4>
-                                                    <small class="text-muted">{% trans "Avg. Score" %}</small>
+                                                    <h4 class="text-warning">{{ completed_attempt_count }}</h4>
+                                                    <small class="text-muted">{% trans "Completed Attempts" %}</small>
                                                 </div>
                                             </div>
                                         </div>
@@ -215,43 +224,4 @@
     </div>
 </div>
 
-<style>
-.quiz-card {
-    transition: transform 0.2s ease-in-out, box-shadow 0.2s ease-in-out;
-}
-
-.quiz-card:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 8px rgba(0,0,0,0.1);
-}
-
-.stat-item h4 {
-    margin-bottom: 5px;
-    font-weight: bold;
-}
-
-.progress-section {
-    border-left: 3px solid #28a745;
-    padding-left: 10px;
-}
-
-@media (max-width: 768px) {
-    .card-header .btn {
-        font-size: 0.8em;
-    }
-}
-</style>
 {% endblock %}
-
-{% block js %}
-<script>
-    // #####################################
-    // loader
-    // document.getElementById('progress-main').style.display = 'none';
-    var timer = setInterval(function(){
-        document.getElementById('progress-card').style.display = 'none';
-        document.getElementById('progress-main').style.display = 'block';
-        clearInterval(timer)
-    }, 4000);           
-</script>
-{% endblock js %}

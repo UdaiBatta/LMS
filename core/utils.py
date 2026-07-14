@@ -8,7 +8,7 @@ from django.conf import settings
 
 
 def send_email(user, subject, msg):
-    send_mail(
+    return send_mail(
         subject,
         msg,
         settings.EMAIL_FROM_ADDRESS,
@@ -26,12 +26,13 @@ def send_html_email(subject, recipient_list, template, context):
     plain_message = strip_tags(html_message)
 
     # Send the email
-    send_mail(
+    return send_mail(
         subject,
         plain_message,
         settings.EMAIL_FROM_ADDRESS,
         recipient_list,
         html_message=html_message,
+        fail_silently=False,
     )
 
 

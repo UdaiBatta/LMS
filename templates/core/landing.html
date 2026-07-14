@@ -1,0 +1,219 @@
+{% extends 'registration/registration_base.html' %}
+{% load static i18n %}
+{% block title %}{% trans 'SkyLearn - Learning management made clear' %}{% endblock title %}
+{% block header %}
+<meta name="description" content="{% trans 'SkyLearn brings courses, learning resources, quizzes, results, announcements, and academic administration into one secure platform.' %}">
+{% endblock header %}
+
+{% block content %}
+<div class="public-site">
+    <div class="public-scroll-progress" aria-hidden="true"><span></span></div>
+    <header class="public-header">
+        <nav class="public-nav" aria-label="{% trans 'Public navigation' %}">
+            <a class="public-brand" href="{% url 'landing' %}" aria-label="{% trans 'SkyLearn home' %}">
+                <img src="{% static 'img/brand.svg' %}" alt="SkyLearn">
+            </a>
+            <div class="public-nav-links">
+                <a href="#platform">{% trans 'Platform' %}</a>
+                <a href="#roles">{% trans 'For your school' %}</a>
+                <a href="#workflow">{% trans 'What is included' %}</a>
+            </div>
+            <a class="public-login" href="{% url 'login' %}">
+                {% trans 'Log in' %}<i class="fas fa-arrow-right" aria-hidden="true"></i>
+            </a>
+        </nav>
+    </header>
+
+    <main>
+        <section class="public-hero">
+            <div class="public-hero-copy">
+                <p class="public-kicker">{% trans 'Learning management system' %}</p>
+                <h1>{% trans 'A clearer way to run learning.' %}</h1>
+                <p class="public-lead">{% trans 'SkyLearn keeps courses, teaching material, assessments, results, announcements, and academic administration in one dependable workspace.' %}</p>
+                <div class="public-actions">
+                    <a class="public-button public-button-primary" href="{% url 'login' %}">{% trans 'Log in to SkyLearn' %}</a>
+                    <a class="public-text-link" href="#platform">{% trans 'See what the platform covers' %}<i class="fas fa-arrow-down" aria-hidden="true"></i></a>
+                </div>
+                <p class="public-audience">{% trans 'Designed for students, lecturers, and academic administrators.' %}</p>
+            </div>
+
+            <aside class="public-index" aria-label="{% trans 'Platform overview' %}">
+                <div class="public-index-heading">
+                    <span>{% trans 'Platform overview' %}</span>
+                    <span>01-04</span>
+                </div>
+                <ol>
+                    <li>
+                        <span>01</span>
+                        <div><h2>{% trans 'Course delivery' %}</h2><p>{% trans 'Programs, courses, files, videos, and registered student access.' %}</p></div>
+                    </li>
+                    <li>
+                        <span>02</span>
+                        <div><h2>{% trans 'Assessment' %}</h2><p>{% trans 'Quizzes, attempt records, marking, scores, and progress.' %}</p></div>
+                    </li>
+                    <li>
+                        <span>03</span>
+                        <div><h2>{% trans 'Academic operations' %}</h2><p>{% trans 'Sessions, semesters, enrollment, allocation, and course packages.' %}</p></div>
+                    </li>
+                    <li>
+                        <span>04</span>
+                        <div><h2>{% trans 'Communication' %}</h2><p>{% trans 'A shared home for school news, events, and important updates.' %}</p></div>
+                    </li>
+                </ol>
+            </aside>
+        </section>
+
+        <section class="public-principles" aria-label="{% trans 'SkyLearn principles' %}">
+            <div><strong>{% trans 'Structured' %}</strong><span>{% trans 'Courses follow your academic setup.' %}</span></div>
+            <div><strong>{% trans 'Role-aware' %}</strong><span>{% trans 'People see the work relevant to them.' %}</span></div>
+            <div><strong>{% trans 'Trackable' %}</strong><span>{% trans 'Progress and results stay connected.' %}</span></div>
+            <div><strong>{% trans 'Accessible' %}</strong><span>{% trans 'Works across desktop and mobile.' %}</span></div>
+        </section>
+
+        <section class="public-section public-platform" id="platform">
+            <div class="public-section-intro">
+                <p class="public-kicker">{% trans 'The platform' %}</p>
+                <h2>{% trans 'The core work, without the clutter.' %}</h2>
+                <p>{% trans 'Each part of SkyLearn has a clear purpose. Learning tools stay simple for students and lecturers, while administrative controls remain available to the people responsible for them.' %}</p>
+            </div>
+
+            <div class="public-feature-list">
+                <article>
+                    <span class="public-feature-number">01</span>
+                    <div class="public-feature-title"><i class="fas fa-book-open" aria-hidden="true"></i><h3>{% trans 'Organize learning' %}</h3></div>
+                    <p>{% trans 'Build programs and courses, then keep files, videos, summaries, and quizzes attached to the right subject.' %}</p>
+                </article>
+                <article>
+                    <span class="public-feature-number">02</span>
+                    <div class="public-feature-title"><i class="fas fa-user-check" aria-hidden="true"></i><h3>{% trans 'Control course access' %}</h3></div>
+                    <p>{% trans 'Students access registered courses while lecturers work within their allocated teaching responsibilities.' %}</p>
+                </article>
+                <article>
+                    <span class="public-feature-number">03</span>
+                    <div class="public-feature-title"><i class="fas fa-clipboard-check" aria-hidden="true"></i><h3>{% trans 'Assess and review' %}</h3></div>
+                    <p>{% trans 'Run quizzes, review completed attempts, record scores, and give students a clear account of their performance.' %}</p>
+                </article>
+                <article>
+                    <span class="public-feature-number">04</span>
+                    <div class="public-feature-title"><i class="fas fa-calendar-alt" aria-hidden="true"></i><h3>{% trans 'Manage the academic cycle' %}</h3></div>
+                    <p>{% trans 'Coordinate sessions, semesters, enrollment, course allocation, and reusable packages from one administrative view.' %}</p>
+                </article>
+            </div>
+        </section>
+
+        <section class="public-roles" id="roles">
+            <div class="public-roles-inner">
+                <div class="public-section-intro public-section-intro-light">
+                    <p class="public-kicker">{% trans 'For your school' %}</p>
+                    <h2>{% trans 'One system. Three focused experiences.' %}</h2>
+                </div>
+                <div class="public-role-columns">
+                    <article data-reveal>
+                        <p class="public-role-label">01 / {% trans 'Student' %}</p>
+                        <h3>{% trans 'Everything needed to keep learning moving.' %}</h3>
+                        <ul>
+                            <li>{% trans 'Registered courses and resources' %}</li>
+                            <li>{% trans 'Quizzes and attempt history' %}</li>
+                            <li>{% trans 'Grades and assessment results' %}</li>
+                            <li>{% trans 'School news and events' %}</li>
+                        </ul>
+                        <button class="public-role-jump" type="button" data-role-jump="student">{% trans 'View student workflow' %}<i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                    </article>
+                    <article data-reveal>
+                        <p class="public-role-label">02 / {% trans 'Lecturer' %}</p>
+                        <h3>{% trans 'Teaching tools connected to each course.' %}</h3>
+                        <ul>
+                            <li>{% trans 'Allocated teaching courses' %}</li>
+                            <li>{% trans 'Files and video resources' %}</li>
+                            <li>{% trans 'Quiz creation and review' %}</li>
+                            <li>{% trans 'Score and result management' %}</li>
+                        </ul>
+                        <button class="public-role-jump" type="button" data-role-jump="lecturer">{% trans 'View lecturer workflow' %}<i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                    </article>
+                    <article data-reveal>
+                        <p class="public-role-label">03 / {% trans 'Administrator' %}</p>
+                        <h3>{% trans 'Academic oversight without scattered records.' %}</h3>
+                        <ul>
+                            <li>{% trans 'People and access management' %}</li>
+                            <li>{% trans 'Programs and course structure' %}</li>
+                            <li>{% trans 'Enrollment and allocation' %}</li>
+                            <li>{% trans 'Live operational overview' %}</li>
+                        </ul>
+                        <button class="public-role-jump" type="button" data-role-jump="administrator">{% trans 'View administrator workflow' %}<i class="fas fa-arrow-right" aria-hidden="true"></i></button>
+                    </article>
+                </div>
+            </div>
+        </section>
+
+        <section class="public-section public-workflow" id="workflow">
+            <div class="public-section-intro">
+                <p class="public-kicker">{% trans 'What is included' %}</p>
+                <h2>{% trans 'A connected academic workflow.' %}</h2>
+                <p>{% trans 'Information is entered once and remains useful across teaching, learning, assessment, and administration.' %}</p>
+            </div>
+
+            <div class="public-workflow-content">
+            <div class="public-role-lens">
+                <div>
+                    <span>{% trans 'Role lens' %}</span>
+                    <p id="role-lens-status" aria-live="polite">{% trans 'Showing the complete workflow.' %}</p>
+                </div>
+                <div class="public-role-filter" role="group" aria-label="{% trans 'Focus workflow by role' %}">
+                    <button type="button" data-role-filter="all" data-status="{% trans 'Showing the complete workflow.' %}" aria-pressed="true">{% trans 'All' %}</button>
+                    <button type="button" data-role-filter="student" data-status="{% trans 'Highlighting the workflow relevant to students.' %}" aria-pressed="false">{% trans 'Student' %}</button>
+                    <button type="button" data-role-filter="lecturer" data-status="{% trans 'Highlighting the workflow relevant to lecturers.' %}" aria-pressed="false">{% trans 'Lecturer' %}</button>
+                    <button type="button" data-role-filter="administrator" data-status="{% trans 'Highlighting the workflow relevant to administrators.' %}" aria-pressed="false">{% trans 'Administrator' %}</button>
+                </div>
+            </div>
+
+            <div class="public-workflow-table" role="table" aria-label="{% trans 'SkyLearn workflow' %}">
+                <div class="public-workflow-row public-workflow-head" role="row">
+                    <span role="columnheader">{% trans 'Area' %}</span>
+                    <span role="columnheader">{% trans 'What SkyLearn handles' %}</span>
+                    <span role="columnheader">{% trans 'Primary users' %}</span>
+                </div>
+                <div class="public-workflow-row" role="row" data-roles="administrator">
+                    <strong role="cell">{% trans 'Academic operations' %}</strong>
+                    <span role="cell">{% trans 'People, programs, courses, enrollment, allocation, sessions, and semesters' %}</span>
+                    <span role="cell">{% trans 'Administrators' %}</span>
+                </div>
+                <div class="public-workflow-row" role="row" data-roles="student">
+                    <strong role="cell">{% trans 'Student learning' %}</strong>
+                    <span role="cell">{% trans 'Registered courses, files, videos, quizzes, attempt history, and progress' %}</span>
+                    <span role="cell">{% trans 'Students' %}</span>
+                </div>
+                <div class="public-workflow-row" role="row" data-roles="lecturer">
+                    <strong role="cell">{% trans 'Teaching delivery' %}</strong>
+                    <span role="cell">{% trans 'Allocated courses, learning resources, quizzes, marking, scores, and results' %}</span>
+                    <span role="cell">{% trans 'Lecturers' %}</span>
+                </div>
+                <div class="public-workflow-row" role="row" data-roles="student lecturer administrator">
+                    <strong role="cell">{% trans 'School updates' %}</strong>
+                    <span role="cell">{% trans 'News, events, and activity records' %}</span>
+                    <span role="cell">{% trans 'Everyone' %}</span>
+                </div>
+            </div>
+            </div>
+        </section>
+
+        <section class="public-cta">
+            <div>
+                <p class="public-kicker">{% trans 'Continue to your workspace' %}</p>
+                <h2>{% trans 'Already have a SkyLearn account?' %}</h2>
+                <p>{% trans 'Use the credentials provided by your school administrator.' %}</p>
+            </div>
+            <a class="public-button public-button-primary" href="{% url 'login' %}">{% trans 'Log in' %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+        </section>
+    </main>
+
+    <footer class="public-footer">
+        <a class="public-brand" href="{% url 'landing' %}"><img src="{% static 'img/brand.svg' %}" alt="SkyLearn"></a>
+        <p>{% trans 'Learning, organized for everyone.' %}</p>
+        <p>&copy; {% now 'Y' %} SkyLearn</p>
+    </footer>
+</div>
+{% endblock content %}
+
+{% block js %}
+<script src="{% static 'js/landing.js' %}"></script>
+{% endblock js %}

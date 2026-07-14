@@ -26,7 +26,10 @@
                 <div class="card-body">
                     <p>Change <a href="{{ student.student.get_absolute_url }}">{{ student.student.get_full_name }}'s</a> program</p>
                     <hr>
+                    {{ form.non_field_errors }}
                     {{ form.program|as_crispy_field }}
+                    {{ form.level|as_crispy_field }}
+                    {{ form.year|as_crispy_field }}
                 </div>
             </div>
         </div>

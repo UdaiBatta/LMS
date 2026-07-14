@@ -14,28 +14,50 @@
     </ol>
 </nav>
 
-<h4 class="fw-bold mb-3"><i class="fas fa-chalkboard-teacher me-2"></i>{% trans 'Lecturer Add Form' %}</h4>
-
 {% include 'snippets/messages.html' %}
 
-<form action="" method="POST">{% csrf_token %}
-    <div class="row mb-3">
-        
-        <div class="col-md-6">
-            <div class="card">
-                <p class="form-title">{% trans 'Personal Info' %}</p>
-                <div class="p-2">
+<div class="record-form-page">
+    <header class="record-form-header">
+        <div class="record-form-heading">
+            <span class="record-form-mark"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i></span>
+            <div>
+                <p class="record-form-eyebrow">{% trans 'People and access' %}</p>
+                <h1>{% trans 'Add a lecturer' %}</h1>
+                <p>{% trans 'Create a teaching profile. Courses can be allocated after the account has been saved.' %}</p>
+            </div>
+        </div>
+    </header>
+    <div class="record-form-layout">
+        <aside class="record-form-guide">
+            <span class="record-form-guide-number">01 / {% trans 'Lecturer' %}</span>
+            <h2>{% trans 'Set up the essentials.' %}</h2>
+            <p>{% trans 'Use accurate contact details so account information and school communication reach the right person.' %}</p>
+            <ul><li>{% trans 'Use an active email address' %}</li><li>{% trans 'Verify the mobile number' %}</li><li>{% trans 'Allocate courses after saving' %}</li></ul>
+        </aside>
+        <form class="record-form-card" action="" method="POST" data-form-progress>
+            {% csrf_token %}
+            <div class="record-form-progress">
+                <span>{% trans 'Required details' %}</span>
+                <div class="record-form-progress-track" aria-hidden="true"><span data-progress-bar></span></div>
+                <strong data-progress-label>0%</strong>
+            </div>
+            <section class="record-form-section">
+                <div class="record-section-heading"><span>1</span><div><h2>{% trans 'Personal information' %}</h2><p>{% trans 'Identity and contact details for the lecturer profile.' %}</p></div></div>
+                <div class="record-field-grid">
                     {{ form.first_name|as_crispy_field }}
                     {{ form.last_name|as_crispy_field }}
                     {{ form.email|as_crispy_field }}
-                    {{ form.address|as_crispy_field }}
                     {{ form.phone|as_crispy_field }}
                     {{ form.gender|as_crispy_field }}
+                    <div class="field-span-2">{{ form.address|as_crispy_field }}</div>
                 </div>
+            </section>
+            <div class="record-form-actions">
+                <a class="btn btn-light" href="{% url 'lecturer_list' %}"><i class="fas fa-arrow-left me-2" aria-hidden="true"></i>{% trans 'Cancel' %}</a>
+                <button class="btn btn-primary" type="submit"><i class="fas fa-user-plus me-2" aria-hidden="true"></i>{% trans 'Create lecturer' %}</button>
             </div>
-        </div>
+        </form>
     </div>
-    <input class="btn btn-primary" type="submit" value="{% trans 'Save' %}">
-</form>
+</div>
 
 {% endblock content %}
