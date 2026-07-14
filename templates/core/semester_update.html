@@ -16,17 +16,16 @@
 
 {% include 'snippets/messages.html' %}
 
-<div class="row">
-    <div class="col-md-6 mx-auto">
-        <div class="card pb-3">
-            <p class="form-title">{% trans 'Semester Add & update Form' %}</p>
-            <div class="container"><br>
-                <form action="" method="POST">{% csrf_token %}
-                    {{ form|crispy }}
-                    <input class="btn btn-primary" type="submit" value="{% trans 'Save' %}">
-                </form>
-            </div>
-        </div>
+<div class="record-form-page">
+    <header class="record-form-header"><div class="record-form-heading"><span class="record-form-mark"><i class="fas fa-calendar-check" aria-hidden="true"></i></span><div><p class="record-form-eyebrow">{% trans 'Academic cycle' %}</p><h1>{% trans 'Semester details' %}</h1><p>{% trans 'Connect the semester to its session and define when the next period begins.' %}</p></div></div></header>
+    <div class="record-form-layout">
+        <aside class="record-form-guide"><span class="record-form-guide-number">01 / {% trans 'Semester' %}</span><h2>{% trans 'Set the active period.' %}</h2><p>{% trans 'The current semester affects course registration, results, and what students see.' %}</p><ul><li>{% trans 'Choose the correct session' %}</li><li>{% trans 'Confirm the next start date' %}</li></ul></aside>
+        <form class="record-form-card" action="" method="POST" data-form-progress>
+            {% csrf_token %}
+            <div class="record-form-progress"><span>{% trans 'Required details' %}</span><div class="record-form-progress-track" aria-hidden="true"><span data-progress-bar></span></div><strong data-progress-label>0%</strong></div>
+            <section class="record-form-section"><div class="record-section-heading"><span>1</span><div><h2>{% trans 'Semester setup' %}</h2><p>{% trans 'The academic period used across courses and results.' %}</p></div></div>{{ form|crispy }}</section>
+            <div class="record-form-actions"><a class="btn btn-light" href="{% url 'semester_list' %}"><i class="fas fa-arrow-left me-2" aria-hidden="true"></i>{% trans 'Cancel' %}</a><button class="btn btn-primary" type="submit"><i class="fas fa-check me-2" aria-hidden="true"></i>{% trans 'Save semester' %}</button></div>
+        </form>
     </div>
 </div>
 

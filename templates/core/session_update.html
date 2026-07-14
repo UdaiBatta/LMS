@@ -16,17 +16,16 @@
 
 {% include 'snippets/messages.html' %}
 
-<div class="row">
-    <div class="col-md-6 mx-auto">
-        <div class="card pb-3">
-            <p class="form-title">{% trans 'Session Add & update Form' %}</p>
-            <div class="container"><br>
-                <form action="" method="POST">{% csrf_token %}
-                    {{ form|crispy }}
-                    <input class="btn btn-primary" type="submit" value="{% trans 'Save' %}">
-                </form>
-            </div>
-        </div>
+<div class="record-form-page">
+    <header class="record-form-header"><div class="record-form-heading"><span class="record-form-mark"><i class="fas fa-calendar-alt" aria-hidden="true"></i></span><div><p class="record-form-eyebrow">{% trans 'Academic cycle' %}</p><h1>{% trans 'Session details' %}</h1><p>{% trans 'Set the academic session and the date the next session begins.' %}</p></div></div></header>
+    <div class="record-form-layout">
+        <aside class="record-form-guide"><span class="record-form-guide-number">01 / {% trans 'Session' %}</span><h2>{% trans 'Keep the calendar aligned.' %}</h2><p>{% trans 'Only one session should be current. Setting this session as current will replace the previous selection.' %}</p><ul><li>{% trans 'Use the official session label' %}</li><li>{% trans 'Confirm the transition date' %}</li></ul></aside>
+        <form class="record-form-card" action="" method="POST" data-form-progress>
+            {% csrf_token %}
+            <div class="record-form-progress"><span>{% trans 'Required details' %}</span><div class="record-form-progress-track" aria-hidden="true"><span data-progress-bar></span></div><strong data-progress-label>0%</strong></div>
+            <section class="record-form-section"><div class="record-section-heading"><span>1</span><div><h2>{% trans 'Academic session' %}</h2><p>{% trans 'The active period used throughout the platform.' %}</p></div></div>{{ form|crispy }}</section>
+            <div class="record-form-actions"><a class="btn btn-light" href="{% url 'session_list' %}"><i class="fas fa-arrow-left me-2" aria-hidden="true"></i>{% trans 'Cancel' %}</a><button class="btn btn-primary" type="submit"><i class="fas fa-check me-2" aria-hidden="true"></i>{% trans 'Save session' %}</button></div>
+        </form>
     </div>
 </div>
 

@@ -102,7 +102,7 @@ class Quiz(models.Model):
         verbose_name_plural = _("Quizzes")
 
     def __str__(self):
-        return self.title
+        return str(self.title)
 
     def save(self, *args, **kwargs):
         if self.single_attempt:
@@ -396,7 +396,7 @@ class Question(models.Model):
         verbose_name_plural = _("Questions")
 
     def __str__(self):
-        return self.content
+        return str(self.content)
 
 
 class MCQuestion(Question):
@@ -416,7 +416,7 @@ class MCQuestion(Question):
 
     def check_if_correct(self, guess):
         try:
-            answer = Choice.objects.get(id=int(guess))
+            answer = Choice.objects.get(id=int(guess), question=self)
             return answer.correct
         except (Choice.DoesNotExist, ValueError):
             return False
@@ -437,7 +437,7 @@ class MCQuestion(Question):
 
     def answer_choice_to_string(self, guess):
         try:
-            return Choice.objects.get(id=int(guess)).choice_text
+            return Choice.objects.get(id=int(guess), question=self).choice_text
         except (Choice.DoesNotExist, ValueError):
             return ""
 
@@ -462,7 +462,7 @@ class Choice(models.Model):
         verbose_name_plural = _("Choices")
 
     def __str__(self):
-        return self.choice_text
+        return str(self.choice_text)
 
 
 class EssayQuestion(Question):

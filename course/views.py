@@ -54,7 +54,7 @@ class ProgramFilterView(FilterView):
 
 
 @login_required
-@lecturer_required
+@admin_required
 def program_add(request):
     if request.method == "POST":
         form = ProgramForm(request.POST)
@@ -91,7 +91,7 @@ def program_detail(request, pk):
 
 
 @login_required
-@lecturer_required
+@admin_required
 def program_edit(request, pk):
     program = get_object_or_404(Program, pk=pk)
     if request.method == "POST":
@@ -109,7 +109,7 @@ def program_edit(request, pk):
 
 
 @login_required
-@lecturer_required
+@admin_required
 def program_delete(request, pk):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
@@ -133,13 +133,22 @@ def course_single(request, slug):
     ):
         messages.error(request, "You are not enrolled in this course.")
         return redirect("user_course_list")
+    if request.user.is_lecturer:
+        require_lecturer_course(request.user, course)
+    elif not (request.user.is_student or request.user.is_superuser):
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You do not have access to this course.")
     files = Upload.objects.filter(course__slug=slug)
     videos = UploadVideo.objects.filter(course__slug=slug)
     lecturers = CourseAllocation.objects.filter(courses__pk=course.id)
     
     # Get quizzes for this course
     from quiz.models import Quiz
-    quizzes = Quiz.objects.filter(course=course).order_by('-timestamp')
+    quizzes = Quiz.objects.filter(course=course)
+    if request.user.is_student:
+        quizzes = quizzes.filter(draft=False)
+    quizzes = quizzes.order_by('-timestamp')
     
     return render(
         request,
@@ -622,6 +631,12 @@ def handle_video_single(request, slug, video_slug):
     if request.user.is_student and not student_can_access_course(request.user, course):
         messages.error(request, "You are not enrolled in this course.")
         return redirect("user_course_list")
+    if request.user.is_lecturer:
+        require_lecturer_course(request.user, course)
+    elif not (request.user.is_student or request.user.is_superuser):
+        from django.core.exceptions import PermissionDenied
+
+        raise PermissionDenied("You do not have access to this course.")
     video = get_object_or_404(UploadVideo, slug=video_slug, course=course)
     return render(
         request,
@@ -743,7 +758,11 @@ def course_registration(request):
         
         for course_id in ids:
             try:
-                course = Course.objects.get(pk=course_id, program=student.program)
+                course = Course.objects.get(
+                    pk=course_id,
+                    program=student.program,
+                    level=student.level,
+                )
                 existing = TakenCourse.objects.filter(student=student, course=course).exists()
                 
                 if not existing:
@@ -823,15 +842,49 @@ def course_registration(request):
 def course_drop(request):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
-    if request.method == "POST":
-        student = get_object_or_404(Student, student__pk=request.user.id)
-        course_ids = request.POST.getlist("course_ids")
-        print("course_ids", course_ids)
-        for course_id in course_ids:
-            course = get_object_or_404(Course, pk=course_id)
-            TakenCourse.objects.filter(student=student, course=course).delete()
-        messages.success(request, "Courses dropped successfully!")
+
+    student = get_object_or_404(Student, student__pk=request.user.id)
+    current_semester = Semester.objects.filter(is_current_semester=True).first()
+    from django.utils import timezone
+
+    if (
+        current_semester
+        and current_semester.next_semester_begins
+        and timezone.localdate() >= current_semester.next_semester_begins
+    ):
+        messages.error(
+            request,
+            _("Courses cannot be dropped after the registration period closes."),
+        )
         return redirect("course_registration")
+
+    course_ids = [
+        course_id
+        for course_id in request.POST.getlist("course_ids")
+        if course_id.isdigit()
+    ]
+    registrations = TakenCourse.objects.filter(
+        student=student, course_id__in=course_ids
+    )
+    protected = registrations.filter(total__gt=0).count()
+    dropped = registrations.filter(total=0).delete()[0]
+
+    if dropped:
+        messages.success(
+            request, _("%(count)d course registration(s) dropped.") % {"count": dropped}
+        )
+    if protected:
+        messages.warning(
+            request,
+            _(
+                "%(count)d course(s) with recorded scores were not dropped. "
+                "Contact an administrator if a correction is required."
+            )
+            % {"count": protected},
+        )
+    if not dropped and not protected:
+        messages.info(request, _("No matching course registrations were found."))
+    return redirect("course_registration")
 
 
 # ########################################################
@@ -869,6 +922,12 @@ def user_course_list(request):
                 # Get all courses from student's program
                 program_courses = Course.objects.filter(
                     program=student.program
+                ).annotate(
+                    file_count=Count('upload', distinct=True),
+                    video_count=Count('uploadvideo', distinct=True),
+                    quiz_count=Count(
+                        'quiz', filter=Q(quiz__draft=False), distinct=True
+                    ),
                 ).distinct().order_by('year', 'semester', 'title')
                 
                 # Get courses the student has registered for
@@ -885,6 +944,8 @@ def user_course_list(request):
                     'student': student,
                     'taken_courses': taken_courses,
                     'taken_course_ids': taken_course_ids,
+                    'course_count': paginator.count,
+                    'registered_count': len(taken_course_ids),
                     'program': student.program,
                     'title': _('My Courses'),
                     'is_paginated': page_obj.has_other_pages(),

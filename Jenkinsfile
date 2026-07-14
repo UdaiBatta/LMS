@@ -5,6 +5,12 @@ pipeline {
         DOCKER_IMAGE = 'skylearn'
         DOCKER_TAG = "${env.BUILD_NUMBER}"
         PYTHON_VERSION = '3.10'
+        SECRET_KEY = 'ci-only-secret-key-with-more-than-fifty-random-looking-characters'
+        DEBUG = 'True'
+        EMAIL_BACKEND = 'django.core.mail.backends.locmem.EmailBackend'
+        EMAIL_HOST_USER = ''
+        EMAIL_HOST_PASSWORD = ''
+        EMAIL_FROM_ADDRESS = 'ci@example.com'
     }
 
     options {
@@ -47,8 +53,8 @@ pipeline {
         stage('Code Quality Check') {
             steps {
                 sh '''
-                    python manage.py check --deploy || true
-                    python manage.py check || true
+                    python manage.py check
+                    python manage.py makemigrations --check --dry-run
                 '''
             }
         }
@@ -56,20 +62,15 @@ pipeline {
         stage('Run Tests') {
             steps {
                 sh '''
-                    python manage.py test --verbosity=2 || true
+                    python manage.py test --verbosity=2
                 '''
-            }
-            post {
-                always {
-                    junit 'test-results/*.xml'
-                }
             }
         }
 
         stage('Collect Static Files') {
             steps {
                 sh '''
-                    python manage.py collectstatic --noinput || true
+                    python manage.py collectstatic --noinput
                 '''
             }
         }
@@ -78,16 +79,14 @@ pipeline {
             steps {
                 script {
                     docker.build("${DOCKER_IMAGE}:${DOCKER_TAG}")
-                    docker.build("${DOCKER_IMAGE}:latest")
                 }
+                sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:latest"
             }
         }
 
         stage('Docker Image Tagging') {
             steps {
-                script {
-                    docker.tag("${DOCKER_IMAGE}:${DOCKER_TAG}", "${DOCKER_IMAGE}:${env.GIT_COMMIT_SHORT}")
-                }
+                sh "docker tag ${DOCKER_IMAGE}:${DOCKER_TAG} ${DOCKER_IMAGE}:${GIT_COMMIT_SHORT}"
             }
         }
     }

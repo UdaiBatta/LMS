@@ -1,10 +1,16 @@
 {% extends 'base.html' %}
-{% i18n %}
+{% load i18n %}
 {% block title %}{% trans 'Coinbase' %}{% endblock title %}
 {% load static %}
 
 {% block content %}
-<div class="container">
-	<center><h1>{% trans 'Coinbase' %}</h1></center>
+<div class="container px-0">
+	<div class="empty-state">
+		<div>
+			<span class="empty-state-icon"><i class="fab fa-bitcoin" aria-hidden="true"></i></span>
+			<h1 class="h4">{% trans 'Coinbase' %}</h1>
+			<p class="text-muted mb-0">{% trans 'This payment method is not configured for this deployment.' %}</p>
+		</div>
+	</div>
 </div>
 {% endblock content %}

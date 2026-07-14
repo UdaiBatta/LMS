@@ -16,18 +16,33 @@
 
 {% include 'snippets/messages.html' %}
 
-<div class="row">
-<div class="col-md-6 mx-auto">
-    <div class="card">
-        <p class="form-title">{% trans 'Program Add Form' %}</p>
-        <div class="p-3"><br>
-            <form action="" method="POST">{% csrf_token %}
+<div class="record-form-page">
+    <header class="record-form-header">
+        <div class="record-form-heading">
+            <span class="record-form-mark"><i class="fas fa-layer-group" aria-hidden="true"></i></span>
+            <div><p class="record-form-eyebrow">{% trans 'Academic structure' %}</p><h1>{{ title }}</h1><p>{% trans 'Create the program that courses and student records will be organized under.' %}</p></div>
+        </div>
+    </header>
+    <div class="record-form-layout">
+        <aside class="record-form-guide">
+            <span class="record-form-guide-number">01 / {% trans 'Program' %}</span>
+            <h2>{% trans 'Name it clearly.' %}</h2>
+            <p>{% trans 'Use the official program name and a short summary that helps staff distinguish it from related programs.' %}</p>
+            <ul><li>{% trans 'Use the official title' %}</li><li>{% trans 'Keep the summary specific' %}</li><li>{% trans 'Add courses after saving' %}</li></ul>
+        </aside>
+        <form class="record-form-card" action="" method="POST" data-form-progress>
+            {% csrf_token %}
+            <div class="record-form-progress"><span>{% trans 'Required details' %}</span><div class="record-form-progress-track" aria-hidden="true"><span data-progress-bar></span></div><strong data-progress-label>0%</strong></div>
+            <section class="record-form-section">
+                <div class="record-section-heading"><span>1</span><div><h2>{% trans 'Program details' %}</h2><p>{% trans 'The name and description used across SkyLearn.' %}</p></div></div>
                 {{ form.title|as_crispy_field }}
                 {{ form.summary|as_crispy_field }}
-                <input class="btn btn-primary" type="submit" value="{% trans 'Save' %}">
-            </form>
-        </div>
+            </section>
+            <div class="record-form-actions">
+                <a class="btn btn-light" href="{% url 'programs' %}"><i class="fas fa-arrow-left me-2" aria-hidden="true"></i>{% trans 'Cancel' %}</a>
+                <button class="btn btn-primary" type="submit"><i class="fas fa-check me-2" aria-hidden="true"></i>{% trans 'Save program' %}</button>
+            </div>
+        </form>
     </div>
-</div>
 </div>
 {% endblock content %}

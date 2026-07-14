@@ -1,168 +1,150 @@
 {% load static %}
 {% load i18n %}
 
-<div id="side-nav">
+<aside id="side-nav" aria-label="{% trans 'Primary navigation' %}">
 	<div class="main-menu">
-		<div class="top-side text-center py-4" style="background-image: url({% static 'img/dotted.jpg' %});">
+		<div class="top-side text-center" style="background-image: url({% static 'img/dotted.jpg' %});">
 			<div class="desktop-hide">
-				<div class="toggle-btn" onclick="toggleSidebar()">
-					<i class="fas fa-times"></i>
-				</div>
+				<button class="nav-icon-btn" type="button" onclick="closeSidebar()" aria-label="{% trans 'Close navigation' %}">
+					<i class="fas fa-times" aria-hidden="true"></i>
+				</button>
 			</div>
-			<a href="/">
-				<img src="{% static 'img/brand.svg' %}" width="210px" alt="SkyLearn">
+			<a href="{% url 'home' %}" aria-label="{% trans 'SkyLearn home' %}">
+				<img src="{% static 'img/brand.svg' %}" alt="SkyLearn">
 			</a>
-			<p class="mt-2 small">
-				<mark class="bg-secondary text-light" style="border-radius: 2px; padding: 2px 5px;">
-					{{ request.user.get_user_role }}
-				</mark>
-			</p>
+			<div><span class="role-badge">{{ request.user.get_user_role }}</span></div>
 		</div>
+
 		{% url 'home' as hom %} {% url 'dashboard' as dash %} {% url 'profile' as prof %}
-		{% url 'lecturer_list' as lec %}
-		{% url 'student_list' as stu %} {% url 'course_allocation_view' as cav %}
-		{% url 'programs' as pro %} {% url 'session_list' as sess %} {% url 'semester_list' as sem %}
+		{% url 'lecturer_list' as lec %} {% url 'student_list' as stu %}
+		{% url 'course_allocation_view' as cav %} {% url 'programs' as pro %}
+		{% url 'session_list' as sess %} {% url 'semester_list' as sem %}
 		{% url 'course_enrollment_list' as cel %} {% url 'package_list' as pkl %}
-		{% url 'add_score' as ascore %} {% url 'grade_results' as vr %}{% url 'ass_results' as ar %}
+		{% url 'add_score' as ascore %} {% url 'grade_results' as vr %} {% url 'ass_results' as ar %}
 		{% url 'course_registration' as cr %} {% url 'edit_profile' as ep %} {% url 'change_password' as cp %}
 		{% url 'quiz_progress' as qpr %} {% url 'quiz_marking' as qce %} {% url 'user_course_list' as ucl %}
-		{% url 'quiz_dashboard' as qdb %}
-		{% url 'admin_panel' as admin_p %}
-		
-
+		{% url 'quiz_dashboard' as qdb %} {% url 'admin_panel' as admin_p %}
 
 		<ul>
+			<li class="sidebar-section-label">{% trans 'Overview' %}</li>
 			{% if request.user.is_superuser %}
 			<li class="{% if request.path == dash %}active{% endif %}">
-				<a href="{% url 'dashboard' %}"><i class="fas fa-tachometer-alt"></i>{% trans 'Dashboard' %}</a>
+				<a href="{% url 'dashboard' %}"><i class="fas fa-chart-pie" aria-hidden="true"></i>{% trans 'Dashboard' %}</a>
 			</li>
 			{% endif %}
 			<li class="{% if request.path == hom %}active{% endif %}">
-				<a href="{% url 'home' %}"><i class="fas fa-home"></i>{% trans 'Home' %}</a>
+				<a href="{% url 'home' %}"><i class="fas fa-home" aria-hidden="true"></i>{% trans 'Home' %}</a>
 			</li>
 			<li class="{% if request.path == prof %}active{% endif %}">
-				<a href="{% url 'profile' %}"><i class="fas fa-user"></i>{% trans 'Profile' %}</a>
+				<a href="{% url 'profile' %}"><i class="fas fa-user" aria-hidden="true"></i>{% trans 'Profile' %}</a>
 			</li>
 
 			{% if request.user.is_superuser %}
+			<li class="sidebar-section-label">{% trans 'People' %}</li>
 			<li class="{% if request.path == admin_p %}active{% endif %}">
-				<a href="{% url 'admin_panel' %}"><i class="fas fa-user-tie"></i>{% trans 'Admin Panel' %}</a>
+				<a href="{% url 'admin_panel' %}"><i class="fas fa-user-shield" aria-hidden="true"></i>{% trans 'Admin Panel' %}</a>
 			</li>
 			<li class="{% if request.path == lec %}active{% endif %}">
-				<a href="{% url 'lecturer_list' %}"><i class="fas fa-chalkboard-teacher"></i>{% trans 'Lecturers' %}</a>
+				<a href="{% url 'lecturer_list' %}"><i class="fas fa-chalkboard-teacher" aria-hidden="true"></i>{% trans 'Lecturers' %}</a>
 			</li>
 			<li class="{% if request.path == stu %}active{% endif %}">
-				<a href="{% url 'student_list' %}"><i class="fas fa-user-graduate"></i>{% trans 'Students' %}</a>
+				<a href="{% url 'student_list' %}"><i class="fas fa-user-graduate" aria-hidden="true"></i>{% trans 'Students' %}</a>
 			</li>
 			{% endif %}
 
 			{% if request.user.is_lecturer or request.user.is_student %}
+			<li class="sidebar-section-label">{% trans 'Learning' %}</li>
 			<li class="{% if request.path == ucl %}active{% endif %}">
-				<a href="{% url 'user_course_list' %}"><i class="fas fa-book"></i>{% trans 'My Courses' %}</a>
+				<a href="{% url 'user_course_list' %}"><i class="fas fa-book" aria-hidden="true"></i>{% trans 'My Courses' %}</a>
 			</li>
 			{% endif %}
 
 			{% if request.user.is_superuser or request.user.is_lecturer %}
+			<li class="sidebar-section-label">{% trans 'Academics' %}</li>
 			<li class="{% if request.path == pro %}active{% endif %}">
-				<a href="{% url 'programs' %}"><i class="fas fa-book-open"></i>{% trans 'Programs & Courses' %}</a>
+				<a href="{% url 'programs' %}"><i class="fas fa-book-open" aria-hidden="true"></i>{% trans 'Programs & Courses' %}</a>
 			</li>
-			{% endif %}
-
-			{% if request.user.is_superuser or request.user.is_lecturer %}
 			<li class="{% if request.path == qdb %}active{% endif %}">
-				<a href="{% url 'quiz_dashboard' %}"><i class="fas fa-chart-bar"></i>{% trans 'Quiz Dashboard' %}</a>
+				<a href="{% url 'quiz_dashboard' %}"><i class="fas fa-chart-bar" aria-hidden="true"></i>{% trans 'Quiz Dashboard' %}</a>
 			</li>
 			<li class="{% if request.path == qce %}active{% endif %}">
-				<a href="{% url 'quiz_marking' %}"><i class="fas fa-check-double"></i>{% trans 'Complete Exams' %}</a>
+				<a href="{% url 'quiz_marking' %}"><i class="fas fa-check-double" aria-hidden="true"></i>{% trans 'Completed Exams' %}</a>
 			</li>
 			{% endif %}
 
 			{% if request.user.is_superuser %}
+			<li class="sidebar-section-label">{% trans 'Administration' %}</li>
 			<li class="{% if request.path == qpr %}active{% endif %}">
-				<a href="{% url 'quiz_progress' %}"><i class="fas fa-record-vinyl"></i>{% trans 'Quiz Progress Rec' %}</a>
+				<a href="{% url 'quiz_progress' %}"><i class="fas fa-clipboard-check" aria-hidden="true"></i>{% trans 'Quiz Progress' %}</a>
 			</li>
 			<li class="{% if request.path == cav %}active{% endif %}">
-				<a href="{% url 'course_allocation_view' %}"><i class="fas fa-tasks"></i>{% trans 'Course Allocation' %}</a>
+				<a href="{% url 'course_allocation_view' %}"><i class="fas fa-tasks" aria-hidden="true"></i>{% trans 'Course Allocation' %}</a>
 			</li>
 			<li class="{% if request.path == cel %}active{% endif %}">
-				<a href="{% url 'course_enrollment_list' %}"><i class="fas fa-users"></i>{% trans 'Student Enrollment' %}</a>
+				<a href="{% url 'course_enrollment_list' %}"><i class="fas fa-users" aria-hidden="true"></i>{% trans 'Student Enrollment' %}</a>
 			</li>
 			<li class="{% if request.path == pkl %}active{% endif %}">
-				<a href="{% url 'package_list' %}"><i class="fas fa-layer-group"></i>{% trans 'Course Packages' %}</a>
+				<a href="{% url 'package_list' %}"><i class="fas fa-layer-group" aria-hidden="true"></i>{% trans 'Course Packages' %}</a>
 			</li>
 			<li class="{% if request.path == sess %}active{% endif %}">
-				<a href="{% url 'session_list' %}"><i class="fas fa-calendar-week"></i>{% trans 'Manage Session' %}</a>
+				<a href="{% url 'session_list' %}"><i class="fas fa-calendar-week" aria-hidden="true"></i>{% trans 'Manage Session' %}</a>
 			</li>
 			<li class="{% if request.path == sem %}active{% endif %}">
-				<a href="{% url 'semester_list' %}"><i class="fas fa-calendar-alt"></i>{% trans 'Manage Semester' %}</a>
+				<a href="{% url 'semester_list' %}"><i class="fas fa-calendar-alt" aria-hidden="true"></i>{% trans 'Manage Semester' %}</a>
 			</li>
 			{% endif %}
 
 			{% if request.user.is_lecturer %}
 			<li class="{% if request.path == ascore %}active{% endif %}">
-				<a href="{% url 'add_score' %}"><i class="fas fa-table"></i>{% trans 'Manage Score' %}</a>
+				<a href="{% url 'add_score' %}"><i class="fas fa-table" aria-hidden="true"></i>{% trans 'Manage Scores' %}</a>
 			</li>
 			{% endif %}
 
 			{% if request.user.is_student %}
 			<li class="{% if request.path == qpr %}active{% endif %}">
-				<a href="{% url 'quiz_progress' %}"><i class="fas fa-record-vinyl"></i>{% trans 'Quiz Progress Rec' %}</a>
+				<a href="{% url 'quiz_progress' %}"><i class="fas fa-clipboard-check" aria-hidden="true"></i>{% trans 'Quiz Progress' %}</a>
 			</li>
 			<li class="{% if request.path == vr %}active{% endif %}">
-				<a href="{% url 'grade_results' %}"><i class="fa fa-spell-check"></i>{% trans 'Grade Results' %}</a>
+				<a href="{% url 'grade_results' %}"><i class="fas fa-spell-check" aria-hidden="true"></i>{% trans 'Grade Results' %}</a>
 			</li>
 			<li class="{% if request.path == ar %}active{% endif %}">
-				<a href="{% url 'ass_results' %}"><i class="fa fa-list-ol"></i> {% trans 'Assesment Results' %}</a>
+				<a href="{% url 'ass_results' %}"><i class="fas fa-list-ol" aria-hidden="true"></i>{% trans 'Assessment Results' %}</a>
 			</li>
 			<li class="{% if request.path == cr %}active{% endif %}">
-				<a href="{% url 'course_registration' %}"><i class="fas fa-plus"></i>{% trans 'Add' %} &amp; {% trans 'Drop Course' %}</a>
+				<a href="{% url 'course_registration' %}"><i class="fas fa-plus" aria-hidden="true"></i>{% trans 'Add or Drop Courses' %}</a>
 			</li>
 			{% endif %}
-			<br />
-			<p class="ms-3 text-secondary">&RightArrow; Others</p>
+
+			<li class="sidebar-section-label">{% trans 'Account' %}</li>
 			<li class="{% if request.path == ep %}active{% endif %}">
-				<a href="{% url 'edit_profile' %}"><i class="fas fa-cogs"></i>{% trans 'Account Setting' %}</a>
+				<a href="{% url 'edit_profile' %}"><i class="fas fa-cogs" aria-hidden="true"></i>{% trans 'Account Settings' %}</a>
 			</li>
 			<li class="{% if request.path == cp %}active{% endif %}">
-				<a href="{% url 'change_password' %}"><i class="fas fa-key"></i>{% trans 'Change Password' %}</a>
+				<a href="{% url 'change_password' %}"><i class="fas fa-key" aria-hidden="true"></i>{% trans 'Change Password' %}</a>
 			</li>
 		</ul>
 	</div>
 
-	<footer class="card-footer mt-5 pt-3 pb-5 px-2">
-		<div class="col-12">
+	<footer>
+		<form action="{% url 'set_language' %}" method="post" id="lang-form">
+			{% csrf_token %}
+			<input name="next" type="hidden" value="{{ request.path }}">
+			<label class="visually-hidden" for="lang-select">{% trans 'Language' %}</label>
+			<select name="language" id="lang-select">
+				{% get_current_language as LANGUAGE_CODE %}
+				{% get_available_languages as LANGUAGES %}
+				{% get_language_info_list for LANGUAGES as languages %}
+				{% for language in languages %}
+				<option value="{{ language.code }}"{% if language.code == LANGUAGE_CODE %} selected{% endif %}>
+					{{ language.name_local }} ({{ language.code }})
+				</option>
+				{% endfor %}
+			</select>
+		</form>
 
-			<form action="{% url 'set_language' %}" method="post" id="lang-form">{% csrf_token %}
-				<input name="next" type="hidden" value="{{ redirect_to }}">
-				<select class="small" name="language" id="lang-select">
-					{% get_current_language as LANGUAGE_CODE %}
-					{% get_available_languages as LANGUAGES %}
-					{% get_language_info_list for LANGUAGES as languages %}
-					{% for language in languages %}
-						<option value="{{ language.code }}"{% if language.code == LANGUAGE_CODE %} selected{% endif %}>
-							{{ language.name_local }} ({{ language.code }})
-						</option>
-					{% endfor %}
-				</select>
-			</form>
-
-			<p class="small m-0">
-				{% trans 'Read our' %} <a href="#"> {% trans 'Privacy' %} </a> {% trans 'and' %} <a href="#"> {% trans 'Terms of use.' %} </a>
-				<br />SkyLearn &copy; <script>document.write(new Date().getFullYear());</script>
-				<br />
-			</p>
-			<a href="https://github.com/UdaiBatta/SkyLearn" class="btn btn-sm btn-dark mx-auto" target="_blank">
-				{% trans '⭐️ Star This Project' %}
-			</a>
-		</div>
+		<p class="small mb-2">SkyLearn &copy; {% now "Y" %}</p>
+		<a href="https://github.com/UdaiBatta/SkyLearn" class="btn btn-sm btn-dark" target="_blank" rel="noopener noreferrer">
+			<i class="fab fa-github" aria-hidden="true"></i>{% trans 'Star this project' %}
+		</a>
 	</footer>
-</div>
-
-{% block js %}
-<script>
-	document.getElementById("lang-select").addEventListener("change", function() {
-		console.log("Changed!")
-    	document.getElementById("lang-form").submit();  // Submit the form programmatically
-	});
-</script>
-{% endblock js %}
+</aside>

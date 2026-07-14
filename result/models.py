@@ -105,6 +105,14 @@ class TakenCourse(models.Model):
         choices=COMMENT_CHOICES, max_length=200, blank=True, editable=False
     )
 
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("student", "course"),
+                name="unique_student_course_registration",
+            )
+        ]
+
     def get_absolute_url(self):
         return reverse("course_detail", kwargs={"slug": self.course.slug})
 
@@ -184,6 +192,14 @@ class Result(models.Model):
     semester = models.CharField(max_length=100, choices=settings.SEMESTER_CHOICES)
     session = models.CharField(max_length=100, blank=True, null=True)
     level = models.CharField(max_length=25, choices=settings.LEVEL_CHOICES, null=True)
+
+    class Meta:
+        constraints = [
+            models.UniqueConstraint(
+                fields=("student", "semester", "session", "level"),
+                name="unique_student_period_result",
+            )
+        ]
 
     def __str__(self):
         return f"Result for {self.student} - Semester: {self.semester}, Level: {self.level}"

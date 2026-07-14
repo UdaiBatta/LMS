@@ -67,19 +67,19 @@
                     <td>{{ forloop.counter }}</td>
                     <td><a href="{{ student.student.student.get_absolute_url }}">{{ student.student.student.username }}</a></td>
                     <td>
-                        <input id="assignment" type="number" name="{{ student.id }}" value="{{ student.assignment }}" width="20px">
+                        <input id="assignment_{{ student.id }}" type="number" min="0" max="100" step="0.01" name="{{ student.id }}" value="{{ student.assignment }}">
                     </td>
                     <td>
-                        <input id="mid_exam" type="number" name="{{ student.id }}" value="{{ student.mid_exam }}">
+                        <input id="mid_exam_{{ student.id }}" type="number" min="0" max="100" step="0.01" name="{{ student.id }}" value="{{ student.mid_exam }}">
                     </td>
                     <td>
-                        <input id="quiz" type="number" name="{{ student.id }}" value="{{ student.quiz }}">
+                        <input id="quiz_{{ student.id }}" type="number" min="0" max="100" step="0.01" name="{{ student.id }}" value="{{ student.quiz }}">
                     </td>
                     <td>
-                        <input id="attendance" type="number" name="{{ student.id }}" value="{{ student.attendance }}">
+                        <input id="attendance_{{ student.id }}" type="number" min="0" max="100" step="0.01" name="{{ student.id }}" value="{{ student.attendance }}">
                     </td>
                     <td>
-                        <input id="final_exam" type="number" name="{{ student.id }}" value="{{ student.final_exam }}">
+                        <input id="final_exam_{{ student.id }}" type="number" min="0" max="100" step="0.01" name="{{ student.id }}" value="{{ student.final_exam }}">
                     </td>
                     <td>{{ student.total }}</td>
 

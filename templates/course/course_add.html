@@ -14,28 +14,36 @@
     </ol>
 </nav>
 
-<div class="title-1">{% trans 'Course Form' %}</div>
-<br>
-<br>
-
 {% include 'snippets/messages.html' %}
 
-<form action="" method="POST">{% csrf_token %}
-    <div class="row">
-        <div class="col-md-6">
-            <div class="card">
-                <p class="form-title">{% trans 'Course Detail' %}</p>
-                <div class="p-3">
+<div class="record-form-page">
+    <header class="record-form-header">
+        <div class="record-form-heading">
+            <span class="record-form-mark"><i class="fas fa-book-open" aria-hidden="true"></i></span>
+            <div><p class="record-form-eyebrow">{% trans 'Academic structure' %}</p><h1>{{ title }}</h1><p>{% trans 'Define the course identity, then place it in the correct program, semester, and level.' %}</p></div>
+        </div>
+    </header>
+    <div class="record-form-layout">
+        <aside class="record-form-guide">
+            <span class="record-form-guide-number">01 / {% trans 'Course' %}</span>
+            <h2>{% trans 'Build the right context.' %}</h2>
+            <p>{% trans 'Course placement controls where it appears and which students can access it.' %}</p>
+            <ul><li>{% trans 'Use the approved course code' %}</li><li>{% trans 'Check credit and semester' %}</li><li>{% trans 'Mark electives deliberately' %}</li></ul>
+        </aside>
+        <form class="record-form-card" action="" method="POST" data-form-progress>
+            {% csrf_token %}
+            <div class="record-form-progress"><span>{% trans 'Required details' %}</span><div class="record-form-progress-track" aria-hidden="true"><span data-progress-bar></span></div><strong data-progress-label>0%</strong></div>
+            <section class="record-form-section">
+                <div class="record-section-heading"><span>1</span><div><h2>{% trans 'Course identity' %}</h2><p>{% trans 'The title, code, and summary shown to staff and students.' %}</p></div></div>
+                <div class="record-field-grid">
                     {{ form.title|as_crispy_field }}
                     {{ form.code|as_crispy_field }}
-                    {{ form.summary|as_crispy_field }}
+                    <div class="field-span-2">{{ form.summary|as_crispy_field }}</div>
                 </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <p class="form-title">{% trans 'Other Info' %}</p>
-                <div class="p-3">
+            </section>
+            <section class="record-form-section">
+                <div class="record-section-heading"><span>2</span><div><h2>{% trans 'Academic placement' %}</h2><p>{% trans 'Where the course belongs in the academic cycle.' %}</p></div></div>
+                <div class="record-field-grid">
                     {{ form.program|as_crispy_field }}
                     {{ form.credit|as_crispy_field }}
                     {{ form.year|as_crispy_field }}
@@ -43,10 +51,13 @@
                     {{ form.level|as_crispy_field }}
                     {{ form.is_elective|as_crispy_field }}
                 </div>
+            </section>
+            <div class="record-form-actions">
+                <a class="btn btn-light" href="{% url 'programs' %}"><i class="fas fa-arrow-left me-2" aria-hidden="true"></i>{% trans 'Cancel' %}</a>
+                <button class="btn btn-primary" type="submit"><i class="fas fa-check me-2" aria-hidden="true"></i>{% trans 'Save course' %}</button>
             </div>
-        </div>
+        </form>
     </div>
-    <input class="btn btn-primary mt-3" type="submit" value="{% trans 'Save' %}">
-</form>
+</div>
 
 {% endblock content %}

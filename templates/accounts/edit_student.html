@@ -14,35 +14,26 @@
     </ol>
 </nav>
 
-<h4 class="fw-bold mb-3"><i class="fas fa-cog me-2"></i>{% trans 'Student Update Form' %}</h4>
-
 {% include 'snippets/messages.html' %}
 
-<form action="" method="POST" enctype="multipart/form-data">{% csrf_token %}
-    <div class="row mb-3">
-        <div class="col-md-6">
-            <div class="card">
-                <p class="form-title">{% trans 'Email' %} &amp; {% trans 'Personal Info' %}</p>
-
-                <div class="card-body">
+<div class="record-form-page">
+    <header class="record-form-header"><div class="record-form-heading"><span class="record-form-mark"><i class="fas fa-user-graduate" aria-hidden="true"></i></span><div><p class="record-form-eyebrow">{% trans 'People and access' %}</p><h1>{{ title }}</h1><p>{% trans 'Keep the student’s contact details and profile image accurate.' %}</p></div></div></header>
+    <div class="record-form-layout">
+        <aside class="record-form-guide"><span class="record-form-guide-number">01 / {% trans 'Student' %}</span><h2>{% trans 'Update with care.' %}</h2><p>{% trans 'Changes to contact details take effect immediately across the platform.' %}</p><ul><li>{% trans 'Verify the email address' %}</li><li>{% trans 'Use a clear profile image' %}</li></ul></aside>
+        <form class="record-form-card" action="" method="POST" enctype="multipart/form-data" data-form-progress>
+            {% csrf_token %}
+            <div class="record-form-progress"><span>{% trans 'Required details' %}</span><div class="record-form-progress-track" aria-hidden="true"><span data-progress-bar></span></div><strong data-progress-label>0%</strong></div>
+            <section class="record-form-section"><div class="record-section-heading"><span>1</span><div><h2>{% trans 'Personal information' %}</h2><p>{% trans 'Identity and contact details for this account.' %}</p></div></div><div class="record-field-grid">
                     {{ form.email|as_crispy_field }}
                     {{ form.first_name|as_crispy_field }}
                     {{ form.last_name|as_crispy_field }}
                     {{ form.gender|as_crispy_field }}
                     {{ form.phone|as_crispy_field }}
-                    {{ form.address|as_crispy_field }}
-                </div>
-            </div>
-        </div>
-        <div class="col-md-6">
-            <div class="card">
-                <p class="form-title">{% trans 'Others' %}</p>
-                <div class="card-body">
-                    {{ form.picture|as_crispy_field }}
-                </div>
-            </div>
-        </div>
+                    <div class="field-span-2">{{ form.address|as_crispy_field }}</div>
+            </div></section>
+            <section class="record-form-section"><div class="record-section-heading"><span>2</span><div><h2>{% trans 'Profile image' %}</h2><p>{% trans 'Optional visual identification for the account.' %}</p></div></div>{{ form.picture|as_crispy_field }}</section>
+            <div class="record-form-actions"><a class="btn btn-light" href="{% url 'student_list' %}"><i class="fas fa-arrow-left me-2" aria-hidden="true"></i>{% trans 'Cancel' %}</a><button class="btn btn-primary" type="submit"><i class="fas fa-check me-2" aria-hidden="true"></i>{% trans 'Save changes' %}</button></div>
+        </form>
     </div>
-    <input class="btn btn-primary" type="submit" value="{% trans 'Save' %}">
-</form>
+</div>
 {% endblock content %}

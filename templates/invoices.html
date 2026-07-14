@@ -1,13 +1,46 @@
-<h1>{% trans 'Invoices' %}</h1>
+{% extends 'base.html' %}
+{% load i18n %}
+{% block title %}{% trans 'Invoices' %} | SkyLearn{% endblock %}
 
-<form method="POST">{% csrf_token %}
-	<input type="number" name="amount" required="true">
-	<button type="submit">{% trans 'Pay now' %}</button>
-</form>
+{% block content %}
+<div class="page-header">
+    <div>
+        <div class="section-kicker">{% trans 'Payments' %}</div>
+        <h1>{% trans 'Invoices' %}</h1>
+        <p>{% trans 'Create a payment and review existing invoice status.' %}</p>
+    </div>
+</div>
 
-{% for invoice in invoices %}
-<h3>{{ invoice.user }}</h3>
-<h3>{{ invoice.amount }}</h3>
-<h3>{{ invoice.total }}</h3>
-<h3>{{ invoice.payment_complete }}</h3>
-{% endfor %}
+<div class="card mb-4">
+    <div class="card-body">
+        <form method="post" class="d-flex flex-wrap align-items-end gap-2">
+            {% csrf_token %}
+            <div class="flex-grow-1">
+                <label class="form-label" for="invoice-amount">{% trans 'Amount' %}</label>
+                <input class="form-control" id="invoice-amount" type="number" name="amount" min="0.01" step="0.01" required>
+            </div>
+            <button class="btn btn-primary" type="submit"><i class="fas fa-credit-card" aria-hidden="true"></i>{% trans 'Pay now' %}</button>
+        </form>
+    </div>
+</div>
+
+{% if invoices %}
+<div class="table-responsive">
+    <table class="table">
+        <thead><tr><th>{% trans 'User' %}</th><th>{% trans 'Amount' %}</th><th>{% trans 'Total' %}</th><th>{% trans 'Status' %}</th></tr></thead>
+        <tbody>
+            {% for invoice in invoices %}
+            <tr>
+                <td>{{ invoice.user }}</td>
+                <td>{{ invoice.amount }}</td>
+                <td>{{ invoice.total }}</td>
+                <td>{% if invoice.payment_complete %}<span class="badge text-bg-success">{% trans 'Paid' %}</span>{% else %}<span class="badge text-bg-warning">{% trans 'Pending' %}</span>{% endif %}</td>
+            </tr>
+            {% endfor %}
+        </tbody>
+    </table>
+</div>
+{% else %}
+<div class="empty-state"><div><span class="empty-state-icon"><i class="fas fa-file-invoice" aria-hidden="true"></i></span><h2 class="h5">{% trans 'No invoices yet' %}</h2></div></div>
+{% endif %}
+{% endblock %}

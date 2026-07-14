@@ -1,15 +1,17 @@
 {% load i18n %}
 {% if filter.form %}
 
-<form action="" method="get">
-    <div class="d-flex flex-wrap align-items-center">
+<form action="" method="get" class="filter-bar">
+    <div class="filter-fields">
         {% for field in filter.form %}
-        <div class="mb-2 me-2">
+        <div class="filter-field">
+            <label class="form-label mb-1" for="{{ field.id_for_label }}">{{ field.label }}</label>
             {{ field }}
+            {% if field.errors %}<div class="invalid-feedback d-block">{{ field.errors|striptags }}</div>{% endif %}
         </div>
         {% endfor %}
-        <button class="btn btn-sm mb-2" type="submit">
-            <i class="fa fa-sliders"></i> {% trans 'Filter' %}
+        <button class="btn btn-primary" type="submit">
+            <i class="fas fa-sliders-h" aria-hidden="true"></i>{% trans 'Filter' %}
         </button>
     </div>
 </form>

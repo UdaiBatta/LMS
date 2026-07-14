@@ -1,81 +1,77 @@
 {% extends 'base.html' %}
 {% load i18n %}
-{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
-{% load static %}
+{% block title %}{{ title }} | SkyLearn{% endblock title %}
 
 {% block content %}
-
-<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+{% trans 'No additional details provided.' as no_details %}
+<nav aria-label="{% trans 'Breadcrumb' %}">
     <ol class="breadcrumb">
-      <li class="breadcrumb-item active" aria-current="page">{% trans 'Home' %}</li>
+        <li class="breadcrumb-item active" aria-current="page">{% trans 'Home' %}</li>
     </ol>
 </nav>
 
-{% if request.user.is_superuser %}
-<div class="manage-wrap">
-    <a class="btn btn-primary" href="{% url 'add_item' %}"><i class="fas fa-plus"></i>{% trans 'Add New Post' %}</a>
-</div>
-{% endif %}
-
 {% include 'snippets/messages.html' %}
 
-<div>
-    <div class="title-1">{% trans 'News' %} &amp; {% trans 'Events' %}</div>
-</div>
-
-<div class="col-md-2 ms-auto d-flex">
-    <div class="me-3">
-        <span class="color-indicator bg-primary"></span> {% trans 'News' %}
-    </div>
+<div class="page-header">
     <div>
-        <span class="color-indicator bg-purple"></span> {% trans 'Events' %}
+        <div class="section-kicker">{% trans 'Campus updates' %}</div>
+        <h1>{% trans 'News' %} &amp; {% trans 'Events' %}</h1>
+        <p>{% trans 'Stay current with announcements, academic dates, and important updates.' %}</p>
     </div>
-</div>
-
-<div class="container-fluid">
-    {% if items %}
-    <div class="row">
-        {% for item in items %}
-        <div class="col-md-4 mb-4">
-            <div class="bg-white border">
-                <div class="card-header-ne {% if item.posted_as == 'News' %}{% trans 'news' %}{% else %}{% trans 'events' %}{% endif %} p-2">
-                    <span class="p-0">
-                        {{ item.title|title }}
-                    </span>
-                    {% if request.user.is_superuser %}
-                    <div class="dropstart">
-                        <button class="btn btn-sm" data-bs-toggle="dropdown" aria-expanded="false">
-                            <i class="fas fa-ellipsis-v text-white"></i>
-                        </button>
-                        <div class="dropdown-menu">
-                            <a class="dropdown-item" href="{% url 'edit_post' pk=item.id %}"><i
-                                    class="unstyled me-2 fas fa-pencil-alt"></i>{% trans 'Edit' %}</a>
-                            <a class="dropdown-item" href="{% url 'delete_post' pk=item.id %}"><i
-                                    class="unstyled me-2 fas fa-trash-alt"></i>{% trans 'Delete' %}</a>
-                        </div>
-                    </div>
-                    {% endif %}
-                </div>
-
-                <div class="p-2 my-2" style="min-height: 120px;">{{ item.summary }}</div>
-
-                <div class="bg-light p-1 small text-secondary text-end pe-3">
-                    <i class="fa fa-calendar small unstyled"></i>
-                    {{ item.updated_date|timesince }} {% trans 'ago' %}
-                </div>
-
-            </div>
-        </div>
-        {% endfor %}
-    </div>
-
-    {% else %}
-    <h4 class="text-center mt-5 py-5 text-muted">
-        <i class="fa-regular fa-folder-open me-2"></i>{% trans 'School news and events will appear here.' %}
-    </h4>
-
+    {% if request.user.is_superuser %}
+    <a class="btn btn-primary" href="{% url 'add_item' %}">
+        <i class="fas fa-plus" aria-hidden="true"></i>{% trans 'Add new post' %}
+    </a>
     {% endif %}
-
 </div>
 
+{% if items %}
+<section class="news-grid" aria-label="{% trans 'News and events' %}">
+    {% for item in items %}
+    <article class="news-card">
+        <div class="news-card-header">
+            <span class="news-card-badge {% if item.posted_as != 'News' %}event{% endif %}">{{ item.posted_as }}</span>
+            {% if request.user.is_superuser %}
+            <div class="dropdown">
+                <button class="btn btn-sm btn-light" type="button" data-bs-toggle="dropdown" aria-expanded="false"
+                    aria-label="{% blocktrans with title=item.title %}Actions for {{ title }}{% endblocktrans %}">
+                    <i class="fas fa-ellipsis-v" aria-hidden="true"></i>
+                </button>
+                <div class="dropdown-menu dropdown-menu-end">
+                    <a class="dropdown-item" href="{% url 'edit_post' pk=item.id %}">
+                        <i class="fas fa-pencil-alt unstyled me-2" aria-hidden="true"></i>{% trans 'Edit' %}
+                    </a>
+                    <form method="post" action="{% url 'delete_post' pk=item.id %}">
+                        {% csrf_token %}
+                        <button class="dropdown-item text-danger" type="submit">
+                            <i class="fas fa-trash-alt unstyled me-2" aria-hidden="true"></i>{% trans 'Delete' %}
+                        </button>
+                    </form>
+                </div>
+            </div>
+            {% endif %}
+        </div>
+        <div class="news-card-body">
+            <h2>{{ item.title|title }}</h2>
+            <p>{{ item.summary|default:no_details|linebreaksbr }}</p>
+        </div>
+        <footer class="news-card-footer">
+            <i class="fas fa-calendar-alt unstyled me-1" aria-hidden="true"></i>
+            <time datetime="{{ item.updated_date|date:'c' }}">{{ item.updated_date|timesince }} {% trans 'ago' %}</time>
+        </footer>
+    </article>
+    {% endfor %}
+</section>
+{% else %}
+<div class="empty-state">
+    <div>
+        <span class="empty-state-icon"><i class="far fa-folder-open" aria-hidden="true"></i></span>
+        <h2 class="h5">{% trans 'No announcements yet' %}</h2>
+        <p class="text-muted">{% trans 'School news and events will appear here.' %}</p>
+        {% if request.user.is_superuser %}
+        <a class="btn btn-primary" href="{% url 'add_item' %}"><i class="fas fa-plus" aria-hidden="true"></i>{% trans 'Create the first post' %}</a>
+        {% endif %}
+    </div>
+</div>
+{% endif %}
 {% endblock content %}

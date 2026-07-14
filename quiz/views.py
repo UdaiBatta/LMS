@@ -52,6 +52,13 @@ class QuizCreateView(CreateView):
         initial["course"] = course
         return initial
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        course = get_object_or_404(Course, slug=self.kwargs["slug"])
+        require_lecturer_course(self.request.user, course)
+        kwargs["course"] = course
+        return kwargs
+
     def get_context_data(self, **kwargs):
         context = super().get_context_data(**kwargs)
         course = get_object_or_404(Course, slug=self.kwargs["slug"])
@@ -89,6 +96,11 @@ class QuizUpdateView(UpdateView):
         context["course"] = self.object.course
         return context
 
+    def get_form_kwargs(self):
+        kwargs = super().get_form_kwargs()
+        kwargs["course"] = self.object.course
+        return kwargs
+
     def form_valid(self, form):
         with transaction.atomic():
             self.object = form.save()
@@ -118,31 +130,40 @@ def quiz_list(request, slug):
     access_message = ""
     
     if request.user.is_student:
-        try:
-            from accounts.models import Student
-            student = Student.objects.get(student=request.user)
-            if student.program != course.program:
-                has_access = False
-                access_message = f"You don't have access to this course. You are enrolled in {student.program.title} program."
-        except Student.DoesNotExist:
-            has_access = False
-            access_message = "Student profile not found. Please contact administration."
+        has_access = student_can_access_course(
+            request.user, course, require_enrollment=True
+        )
+        if not has_access:
+            access_message = "You must be registered for this course to view its quizzes."
+    elif request.user.is_lecturer:
+        require_lecturer_course(request.user, course)
+    elif not request.user.is_superuser:
+        raise PermissionDenied("You do not have access to this course.")
     
     if has_access:
-        quizzes = Quiz.objects.filter(course=course).order_by("-timestamp")
+        quizzes = Quiz.objects.filter(course=course)
+        if request.user.is_student:
+            quizzes = quizzes.filter(draft=False)
+        quizzes = list(
+            quizzes.annotate(question_count=Count("question", distinct=True))
+            .order_by("-timestamp")
+        )
         
         # For students, add quiz completion status using Sitting model
         quiz_progress = {}
         if request.user.is_student:
+            completed_sittings = Sitting.objects.filter(
+                user=request.user,
+                quiz__in=quizzes,
+                course=course,
+                complete=True,
+            ).order_by("quiz_id", "-end")
+            completed_by_quiz = {}
+            for sitting in completed_sittings:
+                completed_by_quiz.setdefault(sitting.quiz_id, sitting)
+
             for quiz in quizzes:
-                # Check if user has completed this quiz
-                completed_sitting = Sitting.objects.filter(
-                    user=request.user, 
-                    quiz=quiz, 
-                    course=course,
-                    complete=True
-                ).first()
-                
+                completed_sitting = completed_by_quiz.get(quiz.id)
                 if completed_sitting:
                     quiz_progress[quiz.id] = {
                         'completed': True,
@@ -152,15 +173,24 @@ def quiz_list(request, slug):
                 else:
                     quiz_progress[quiz.id] = {'completed': False}
     else:
-        quizzes = Quiz.objects.none()
+        quizzes = []
         quiz_progress = {}
         messages.error(request, access_message)
+
+    question_total = sum(quiz.question_count for quiz in quizzes)
+    published_quiz_count = sum(not quiz.draft for quiz in quizzes)
+    completed_attempt_count = Sitting.objects.filter(
+        course=course, quiz__in=quizzes, complete=True
+    ).count() if quizzes and not request.user.is_student else 0
     
     context = {
         "quizzes": quizzes,
         "course": course,
         "has_access": has_access,
         "quiz_progress": quiz_progress,
+        "question_total": question_total,
+        "published_quiz_count": published_quiz_count,
+        "completed_attempt_count": completed_attempt_count,
     }
     
     return render(request, "quiz/quiz_list.html", context)
@@ -268,8 +298,16 @@ class QuizUserProgressView(TemplateView):
                 user=user
             ).select_related('quiz', 'course').order_by('-end')
         
+        exams = list(exams)
+        score_percentages = [exam.get_percent_correct for exam in exams]
         context["exams"] = exams
-        context["exams_counter"] = exams.count()
+        context["exams_counter"] = len(exams)
+        context["average_score"] = (
+            round(sum(score_percentages) / len(score_percentages), 1)
+            if score_percentages
+            else 0
+        )
+        context["best_score"] = max(score_percentages, default=0)
         
         # Add some additional context for better UI
         context["user_role"] = user.get_user_role() if hasattr(user, 'get_user_role') else 'Student'
@@ -356,8 +394,13 @@ class QuizTake(FormView):
     result_template_name = "quiz/result.html"
 
     def dispatch(self, request, *args, **kwargs):
-        self.course = get_object_or_404(Course, pk=self.kwargs["pk"])
-        self.quiz = get_object_or_404(Quiz, slug=self.kwargs["slug"], course=self.course)
+        self.quiz = get_object_or_404(Quiz, pk=self.kwargs["pk"], slug=self.kwargs["slug"])
+        self.course = self.quiz.course
+
+        if self.quiz.draft and not (
+            request.user.is_superuser or request.user.is_lecturer
+        ):
+            raise PermissionDenied("This quiz is not available yet.")
         
         # Check student access to course
         if request.user.is_student:
@@ -372,6 +415,8 @@ class QuizTake(FormView):
                 return redirect("user_course_list")
         elif request.user.is_lecturer:
             require_lecturer_course(request.user, self.course)
+        elif not request.user.is_superuser:
+            raise PermissionDenied("You do not have access to this quiz.")
         
         # Check if quiz has questions
         if not Question.objects.filter(quiz=self.quiz).exists():
@@ -518,12 +563,14 @@ class QuizDashboardView(TemplateView):
         completed_sittings = Sitting.objects.filter(
             quiz__in=quizzes, complete=True
         )
-        if completed_sittings.exists():
-            average_score = completed_sittings.aggregate(
-                avg=Avg('current_score')
-            )['avg'] or 0
-        else:
-            average_score = 0
+        score_percentages = [
+            sitting.get_percent_correct for sitting in completed_sittings
+        ]
+        average_score = (
+            sum(score_percentages) / len(score_percentages)
+            if score_percentages
+            else 0
+        )
 
         # Recent quizzes (last 10)
         recent_quizzes = quizzes.order_by('-timestamp')[:10]
@@ -605,7 +652,7 @@ class QuizResultsView(DetailView):
                 correct_count = 0
                 total_count = 0
                 for sitting in sittings:
-                    if str(question.id) not in sitting.get_incorrect_questions:
+                    if question.id not in sitting.get_incorrect_questions:
                         correct_count += 1
                     total_count += 1
                 

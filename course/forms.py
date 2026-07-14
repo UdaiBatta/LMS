@@ -111,6 +111,21 @@ class CoursePackageForm(forms.ModelForm):
         for field_name in ["name", "program", "level", "year"]:
             self.fields[field_name].widget.attrs.update({"class": "form-control"})
 
+    def clean_courses(self):
+        courses = self.cleaned_data["courses"]
+        program = self.cleaned_data.get("program")
+        level = self.cleaned_data.get("level")
+        year = self.cleaned_data.get("year")
+        if program and level and year:
+            invalid_courses = courses.exclude(
+                program=program, level=level, year=year
+            )
+            if invalid_courses.exists():
+                raise forms.ValidationError(
+                    "Every course in a package must match its program, level, and year."
+                )
+        return courses
+
 
 # Upload files to specific course
 class UploadFormFile(forms.ModelForm):

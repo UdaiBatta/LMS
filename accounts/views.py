@@ -2,7 +2,7 @@ from django.contrib import messages
 from django.contrib.auth import update_session_auth_hash
 from django.contrib.auth.decorators import login_required
 from django.contrib.auth.forms import PasswordChangeForm
-from django.http import HttpResponse, JsonResponse
+from django.http import HttpResponse, HttpResponseNotAllowed, JsonResponse
 from django.shortcuts import get_object_or_404, redirect, render
 from django.template.loader import get_template, render_to_string
 from django.utils.decorators import method_decorator
@@ -53,7 +53,6 @@ def validate_username(request):
     return JsonResponse(data)
 
 
-@login_required
 def session_timeout_check(request):
     """
     AJAX endpoint to check session timeout status and return remaining time.
@@ -73,7 +72,7 @@ def session_timeout_check(request):
                 request.session['last_activity'] = time.time()
                 request.session.save()
                 return JsonResponse({'success': True, 'message': 'Session extended'})
-        except:
+        except (json.JSONDecodeError, UnicodeDecodeError):
             pass
     
     # Check current session status
@@ -84,10 +83,6 @@ def session_timeout_check(request):
     # Get session timeout from settings
     session_timeout = getattr(settings, 'SESSION_COOKIE_AGE', 600)
     remaining_time = max(0, session_timeout - time_diff)
-    
-    # Update last activity for GET requests too (to keep session alive during normal usage)
-    if request.method == 'GET':
-        request.session['last_activity'] = current_time
     
     return JsonResponse({
         'authenticated': True,
@@ -131,6 +126,7 @@ def profile(request):
         "title": request.user.get_full_name,
         "current_session": current_session,
         "current_semester": current_semester,
+        "school_name": settings.SCHOOL_NAME,
     }
 
     if request.user.is_lecturer:
@@ -179,6 +175,7 @@ def profile_single(request, user_id):
         "user": user,
         "current_session": current_session,
         "current_semester": current_semester,
+        "school_name": settings.SCHOOL_NAME,
     }
 
     if user.is_lecturer:
@@ -330,6 +327,8 @@ def render_lecturer_pdf_list(request):
 @login_required
 @admin_required
 def delete_staff(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
     lecturer = get_object_or_404(User, is_lecturer=True, pk=pk)
     full_name = lecturer.get_full_name
     lecturer.delete()
@@ -349,6 +348,7 @@ def student_add_view(request):
         form = StudentAddForm(request.POST)
         if form.is_valid():
             student = form.save()
+            request.session["new_student_credentials_id"] = student.pk
             full_name = student.get_full_name
             email = student.email
             
@@ -375,18 +375,23 @@ def student_credentials_view(request):
     """Display newly created student credentials or reset password credentials"""
     from django.core.cache import cache
     
-    # Try to get credentials from cache (for new students) or session (for password resets)
-    credentials = cache.get('last_student_credentials') or request.session.get('reset_student_credentials')
+    # New-account credentials are keyed to the user created in this admin's
+    # session. A single global cache key could expose one admin's password to
+    # another logged-in admin.
+    reset_credentials = request.session.pop("reset_student_credentials", None)
+    new_student_id = request.session.pop("new_student_credentials_id", None)
+    credentials = reset_credentials
+    cache_key = None
+    if credentials is None and new_student_id is not None:
+        cache_key = f"student_credentials:{new_student_id}"
+        credentials = cache.get(cache_key)
     
     if not credentials:
         messages.error(request, "No credentials found. Please add a new student or reset a password.")
         return redirect("student_list")
     
-    # Clear the cache/session after displaying
-    if cache.get('last_student_credentials'):
-        cache.delete('last_student_credentials')
-    if 'reset_student_credentials' in request.session:
-        del request.session['reset_student_credentials']
+    if cache_key:
+        cache.delete(cache_key)
     
     return render(
         request, 
@@ -414,7 +419,9 @@ def reset_student_password(request, pk):
         request.session['reset_student_credentials'] = {
             'username': student_user.username,
             'password': new_password,
-            'student_name': student_user.get_full_name
+            'student_name': student_user.get_full_name,
+            'student_email': student_user.email,
+            'email_status': 'not_sent'
         }
         
         messages.success(request, f"Password reset for {student_user.get_full_name}")
@@ -481,6 +488,8 @@ def render_student_pdf_list(request):
 @login_required
 @admin_required
 def delete_student(request, pk):
+    if request.method != "POST":
+        return HttpResponseNotAllowed(["POST"])
     student = get_object_or_404(Student, pk=pk)
     full_name = student.student.get_full_name
     student.delete()

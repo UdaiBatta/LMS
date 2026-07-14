@@ -26,7 +26,9 @@ class EssayForm(forms.Form):
 class QuizAddForm(forms.ModelForm):
     class Meta:
         model = Quiz
-        exclude = []
+        # The course is owned by the URL and is assigned server-side. Exposing
+        # it here allowed a forged update to move a quiz to another course.
+        exclude = ("course",)
 
     questions = forms.ModelMultipleChoiceField(
         queryset=Question.objects.all().select_subclasses(),
@@ -35,8 +37,16 @@ class QuizAddForm(forms.ModelForm):
         widget=FilteredSelectMultiple(verbose_name=_("Questions"), is_stacked=False),
     )
 
-    def __init__(self, *args, **kwargs):
+    def __init__(self, *args, course=None, **kwargs):
         super(QuizAddForm, self).__init__(*args, **kwargs)
+        if course is None:
+            self.fields["questions"].queryset = Question.objects.none()
+        else:
+            self.fields["questions"].queryset = (
+                Question.objects.filter(quiz__course=course)
+                .select_subclasses()
+                .distinct()
+            )
         if self.instance.pk:
             self.fields["questions"].initial = (
                 self.instance.question_set.all().select_subclasses()
