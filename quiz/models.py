@@ -102,7 +102,7 @@ class Quiz(models.Model):
         verbose_name_plural = _("Quizzes")
 
     def __str__(self):
-        return self.title
+        return str(self.title)
 
     def save(self, *args, **kwargs):
         if self.single_attempt:
@@ -396,7 +396,7 @@ class Question(models.Model):
         verbose_name_plural = _("Questions")
 
     def __str__(self):
-        return self.content
+        return str(self.content)
 
 
 class MCQuestion(Question):
@@ -462,7 +462,7 @@ class Choice(models.Model):
         verbose_name_plural = _("Choices")
 
     def __str__(self):
-        return self.choice_text
+        return str(self.choice_text)
 
 
 class EssayQuestion(Question):
