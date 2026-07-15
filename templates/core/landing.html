@@ -17,6 +17,7 @@
                 <a href="#platform">{% trans 'Platform' %}</a>
                 <a href="#roles">{% trans 'For your school' %}</a>
                 <a href="#workflow">{% trans 'What is included' %}</a>
+                <a href="#contact">{% trans 'Contact' %}</a>
             </div>
             <a class="public-login" href="{% url 'login' %}">
                 {% trans 'Log in' %}<i class="fas fa-arrow-right" aria-hidden="true"></i>
@@ -37,29 +38,47 @@
                 <p class="public-audience">{% trans 'Designed for students, lecturers, and academic administrators.' %}</p>
             </div>
 
-            <aside class="public-index" aria-label="{% trans 'Platform overview' %}">
-                <div class="public-index-heading">
-                    <span>{% trans 'Platform overview' %}</span>
-                    <span>01-04</span>
+            <aside class="public-showcase" aria-label="{% trans 'A connected academic workflow' %}">
+                <div class="public-showcase-orbit public-showcase-orbit-one" aria-hidden="true"></div>
+                <div class="public-showcase-orbit public-showcase-orbit-two" aria-hidden="true"></div>
+                <div class="public-showcase-glow" aria-hidden="true"></div>
+                <div class="public-showcase-window">
+                    <div class="public-showcase-bar">
+                        <span>{% trans 'SkyLearn workspace' %}</span>
+                        <span class="public-live-status"><i aria-hidden="true"></i>{% trans 'In sync' %}</span>
+                    </div>
+                    <div class="public-showcase-content">
+                        <div class="public-showcase-heading">
+                            <p>{% trans 'Academic pulse' %}</p>
+                            <h2>{% trans 'Everything moves together.' %}</h2>
+                            <span id="public-pulse-status" aria-live="polite">{% trans 'Course delivery is in focus.' %}</span>
+                        </div>
+                        <ol class="public-pulse-list">
+                            <li class="is-active" data-pulse-step="0" data-pulse-status="{% trans 'Course delivery is in focus.' %}">
+                                <span class="public-pulse-number">01</span>
+                                <div><strong>{% trans 'Course delivery' %}</strong><small>{% trans 'Courses, files, videos, and access' %}</small></div>
+                                <i class="fas fa-book-open" aria-hidden="true"></i>
+                            </li>
+                            <li data-pulse-step="1" data-pulse-status="{% trans 'Assessment is in focus.' %}">
+                                <span class="public-pulse-number">02</span>
+                                <div><strong>{% trans 'Assessment' %}</strong><small>{% trans 'Quizzes, marking, scores, and progress' %}</small></div>
+                                <i class="fas fa-clipboard-check" aria-hidden="true"></i>
+                            </li>
+                            <li data-pulse-step="2" data-pulse-status="{% trans 'Academic operations are in focus.' %}">
+                                <span class="public-pulse-number">03</span>
+                                <div><strong>{% trans 'Academic operations' %}</strong><small>{% trans 'Sessions, enrollment, and allocation' %}</small></div>
+                                <i class="fas fa-layer-group" aria-hidden="true"></i>
+                            </li>
+                            <li data-pulse-step="3" data-pulse-status="{% trans 'Communication is in focus.' %}">
+                                <span class="public-pulse-number">04</span>
+                                <div><strong>{% trans 'Communication' %}</strong><small>{% trans 'News, events, and shared updates' %}</small></div>
+                                <i class="fas fa-bullhorn" aria-hidden="true"></i>
+                            </li>
+                        </ol>
+                    </div>
                 </div>
-                <ol>
-                    <li>
-                        <span>01</span>
-                        <div><h2>{% trans 'Course delivery' %}</h2><p>{% trans 'Programs, courses, files, videos, and registered student access.' %}</p></div>
-                    </li>
-                    <li>
-                        <span>02</span>
-                        <div><h2>{% trans 'Assessment' %}</h2><p>{% trans 'Quizzes, attempt records, marking, scores, and progress.' %}</p></div>
-                    </li>
-                    <li>
-                        <span>03</span>
-                        <div><h2>{% trans 'Academic operations' %}</h2><p>{% trans 'Sessions, semesters, enrollment, allocation, and course packages.' %}</p></div>
-                    </li>
-                    <li>
-                        <span>04</span>
-                        <div><h2>{% trans 'Communication' %}</h2><p>{% trans 'A shared home for school news, events, and important updates.' %}</p></div>
-                    </li>
-                </ol>
+                <div class="public-showcase-note public-showcase-note-top" aria-hidden="true"><i class="fas fa-check"></i><span>{% trans 'Learning connected' %}</span></div>
+                <div class="public-showcase-note public-showcase-note-bottom" aria-hidden="true"><span>{% trans 'One clear system' %}</span><i class="fas fa-arrow-up-right-from-square"></i></div>
             </aside>
         </section>
 
@@ -193,6 +212,19 @@
                     <span role="cell">{% trans 'Everyone' %}</span>
                 </div>
             </div>
+            </div>
+        </section>
+
+        <section class="public-contact" id="contact">
+            <div class="public-contact-copy">
+                <p class="public-kicker">{% trans 'For schools evaluating SkyLearn' %}</p>
+                <h2>{% trans 'Pricing shaped around your school.' %}</h2>
+                <p>{% trans 'Tell us about your learners, academic structure, and rollout plans. We will help you choose the right setup, onboarding support, and pricing approach.' %}</p>
+            </div>
+            <div class="public-contact-actions">
+                <div class="public-contact-topics"><span>{% trans 'Pricing' %}</span><span>{% trans 'Implementation' %}</span><span>{% trans 'Onboarding & support' %}</span></div>
+                <a class="public-button public-button-primary" href="mailto:{{ contact_email }}?subject=SkyLearn%20pricing%20enquiry">{% trans 'Contact us for pricing' %}<i class="fas fa-arrow-up-right-from-square" aria-hidden="true"></i></a>
+                <p>{% trans 'We will discuss your requirements before recommending a plan.' %}</p>
             </div>
         </section>
 

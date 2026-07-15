@@ -16,6 +16,11 @@
 <div class="title-1"><i class="fas fa-table"></i>{% trans 'Grade Results' %}</div>
 <p>{{ student.level }} {% trans 'Result' %}</p>
 
+{% if no_results_available %}
+<div class="alert alert-info" role="status">
+  <i class="fas fa-info-circle me-2" aria-hidden="true"></i>{{ availability_message }}
+</div>
+{% else %}
 <div class="table-responsive">
   <div class="table-title"><u>{% trans 'First Semester:' %}</u></div>
   <table class="table table-light">
@@ -30,8 +35,7 @@
         <th>{% trans 'Comment' %}</th>
       </tr>
     </thead>
-    {% for course in courses %}
-    {% if course.course.semester == "First" %}
+    {% for course in first_semester_courses %}
     <tbody>
       <tr class="{% if forloop.counter|divisibleby:2 %}bg-gray{% endif %}">
         <th>{{ forloop.counter }}</th>
@@ -52,7 +56,8 @@
 
       </tr>
     </tbody>
-    {% endif %}
+    {% empty %}
+      <tr><td colspan="7" class="text-center text-muted py-4">{% trans 'No first-semester grades are available.' %}</td></tr>
     {% endfor %}
 
     {% for result in results %}
@@ -95,8 +100,7 @@
         <th>{% trans 'Comment' %}</th>
       </tr>
     </thead>
-    {% for course in courses %}
-    {% if course.course.semester == "Second" %}
+    {% for course in second_semester_courses %}
     <tbody>
       <tr>
         <th>{{ forloop.counter }}</th>
@@ -117,7 +121,8 @@
 
       </tr>
     </tbody>
-    {% endif %}
+    {% empty %}
+      <tr><td colspan="7" class="text-center text-muted py-4">{% trans 'No second-semester grades are available.' %}</td></tr>
     {% endfor %}
     
     {% for result in results %}
@@ -147,7 +152,7 @@
       <th></th>
       <th></th>
       <th></th>
-      <th>{% trans 'Previous CGPA:' %} {{ previousCGPA }}</th>
+      <th>{% trans 'Previous CGPA:' %} {{ previous_cgpa }}</th>
     </tr>
     {% endif %}
     {% endfor %}
@@ -155,30 +160,5 @@
   </table>
 </div>
 
-<br>
-<tbody>
-  {% for result in results %}
-  {% if result.semester == "First" %}
-  <tr>
-    <th></th>
-    <th></th>
-    <th><label>{% trans 'First Semester GPA:' %}</label> {{ result.gpa }}</th>
-  </tr>
-  <br>
-  {% elif result.semester == "Second" %}
-    <tr>
-    <th></th>
-    <th></th>
-    <th><label>{% trans 'Second Semester GPA:' %}</label> {{ result.gpa }}</th>
-  </tr>
-  <br>
-  {% endif %}
-  {% endfor %}
-  <tr>
-    <th></th>
-    <th></th>
-    <th><label>{% trans 'Previous CGPA:' %}</label> {{ previousCGPA }}</th>
-  </tr>
-</tbody>
-<br>
+{% endif %}
 {% endblock %}

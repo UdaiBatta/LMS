@@ -16,23 +16,45 @@
 
 {% include 'snippets/messages.html' %}
 
-<div class="row">
-    <div class="col-md-6 mx-auto">
-        <div class="card">
-            <p class="form-title">{% trans 'Course Allocation Form' %}</p>
-            <div class="p-3">
-                <form action="" method="POST">{% csrf_token %}
-                      {{ form.lecturer|as_crispy_field }}
-                      {{ form.courses|as_crispy_field }}
-                        
-                    {% for course in form.courses.all %}{{ course }}{% endfor %}
-
-                    <input class="btn btn-outline-primary" type="submit" value="{% trans 'Save' %}">
-                </form>
+<div class="allocation-page">
+    <header class="workflow-page-header">
+        <div><p class="workflow-eyebrow">{% trans 'Teaching setup' %}</p><h1><i class="fas fa-diagram-project" aria-hidden="true"></i>{% trans 'Course allocation' %}</h1><p>{% trans 'Assign the right teaching workload without losing track of a long course list.' %}</p></div>
+    </header>
+    <form action="" method="POST" class="allocation-form">{% csrf_token %}
+        {{ form.non_field_errors }}
+        <section class="allocation-lecturer-card">
+            <div class="workflow-card-heading"><div><span>01</span><div><h2>{% trans 'Choose lecturer' %}</h2><p>{% trans 'The selected courses will replace this lecturer’s current allocation.' %}</p></div></div></div>
+            <label for="{{ form.lecturer.id_for_label }}" class="form-label">{{ form.lecturer.label }}</label>
+            {{ form.lecturer }}{{ form.lecturer.errors }}
+        </section>
+        <section class="allocation-courses-card">
+            <div class="workflow-card-heading"><div><span>02</span><div><h2>{% trans 'Select courses' %}</h2><p>{% trans 'Search and select the courses this lecturer will teach.' %}</p></div></div><strong id="allocation-selection-count">0 {% trans 'selected' %}</strong></div>
+            {{ form.courses.errors }}
+            <div class="allocation-tools"><label class="visually-hidden" for="allocation-course-search">{% trans 'Search courses' %}</label><i class="fas fa-magnifying-glass" aria-hidden="true"></i><input id="allocation-course-search" type="search" placeholder="{% trans 'Search by course title or code' %}"><button type="button" class="btn btn-sm btn-light" data-select-courses="all">{% trans 'Select all' %}</button><button type="button" class="btn btn-sm btn-light" data-select-courses="none">{% trans 'Clear' %}</button></div>
+            <div class="allocation-course-list">
+                {% for course in form.courses %}
+                <label class="allocation-course-option" data-course-option>{{ course.tag }}<span>{{ course.choice_label }}</span></label>
+                {% empty %}<p class="text-muted mb-0">{% trans 'No courses are available yet.' %}</p>
+                {% endfor %}
             </div>
-        </div>
-
-    </div>
+        </section>
+        <div class="workflow-form-actions"><a class="btn btn-light" href="{% url 'course_allocation_view' %}">{% trans 'Cancel' %}</a><button class="btn btn-primary" type="submit"><i class="fas fa-check" aria-hidden="true"></i>{% trans 'Save allocation' %}</button></div>
+    </form>
 </div>
 
 {% endblock content %}
+
+{% block js %}
+<script>
+document.addEventListener('DOMContentLoaded', function () {
+    const search = document.getElementById('allocation-course-search');
+    const options = Array.from(document.querySelectorAll('[data-course-option]'));
+    const count = document.getElementById('allocation-selection-count');
+    const updateCount = function () { count.textContent = options.filter(function (option) { return option.querySelector('input').checked; }).length + ' {% trans "selected" %}'; };
+    search.addEventListener('input', function () { const query = search.value.toLowerCase().trim(); options.forEach(function (option) { option.hidden = !option.textContent.toLowerCase().includes(query); }); });
+    document.querySelectorAll('[data-select-courses]').forEach(function (button) { button.addEventListener('click', function () { options.forEach(function (option) { if (!option.hidden) option.querySelector('input').checked = button.dataset.selectCourses === 'all'; }); updateCount(); }); });
+    options.forEach(function (option) { option.querySelector('input').addEventListener('change', updateCount); });
+    updateCount();
+});
+</script>
+{% endblock js %}

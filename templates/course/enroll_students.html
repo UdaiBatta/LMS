@@ -14,9 +14,9 @@
 
 {% include 'snippets/messages.html' %}
 
-<div class="title-1"><i class="fas fa-user-graduate"></i> {% trans 'Enroll Students' %}</div>
+<header class="workflow-page-header enrollment-page-header"><div><p class="workflow-eyebrow">{% trans 'Course administration' %}</p><h1><i class="fas fa-user-graduate" aria-hidden="true"></i>{% trans 'Enroll students' %}</h1><p>{% trans 'Choose a course, review its roster, and add eligible students from one focused workspace.' %}</p></div></header>
 
-<div class="card mb-3">
+<div class="card mb-3 enrollment-course-picker">
     <div class="p-3">
         <form action="" method="GET" id="course-picker">
             <label for="course-select"><strong>{% trans 'Select a course' %}</strong></label>
@@ -33,10 +33,10 @@
 </div>
 
 {% if selected_course %}
-<div class="row">
+<div class="row enrollment-workspace">
     <!-- Class roster -->
     <div class="col-lg-6 mb-3">
-        <div class="card h-100">
+        <div class="card h-100 enrollment-panel">
             <p class="form-title">
                 <i class="fas fa-clipboard-list"></i>
                 {% trans 'Class Roster' %} — {{ roster|length }} {% trans 'enrolled' %}
@@ -87,7 +87,7 @@
 
     <!-- Add students -->
     <div class="col-lg-6 mb-3">
-        <div class="card h-100">
+        <div class="card h-100 enrollment-panel">
             <p class="form-title"><i class="fas fa-user-plus"></i> {% trans 'Add Students' %}</p>
             <div class="p-3">
                 <!-- Filters -->

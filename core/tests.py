@@ -12,6 +12,7 @@ from quiz.models import Quiz
     STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage",
 )
 class LandingPageTests(TestCase):
+    @override_settings(SKYLEARN_CONTACT_EMAIL="sales@example.com")
     def test_anonymous_visitor_sees_public_landing_page_and_login_action(self):
         response = self.client.get(reverse("landing"))
 
@@ -20,8 +21,13 @@ class LandingPageTests(TestCase):
         self.assertContains(response, reverse("login"))
         self.assertContains(response, "img/brand.svg")
         self.assertContains(response, "A clearer way to run learning")
+        self.assertContains(response, "public-showcase")
+        self.assertContains(response, 'data-pulse-step="0"')
+        self.assertContains(response, "public-pulse-status")
         self.assertContains(response, "data-role-filter=\"student\"")
         self.assertContains(response, "js/landing.js")
+        self.assertContains(response, "Contact us for pricing")
+        self.assertContains(response, "mailto:sales@example.com")
 
     def test_authenticated_visitor_continues_to_application_home(self):
         user = get_user_model().objects.create_user(
@@ -101,6 +107,25 @@ class AcademicPeriodWorkflowTests(TestCase):
         self.assertFalse(old_one.is_current_session)
         self.assertFalse(old_two.is_current_session)
         self.assertEqual(Session.objects.filter(is_current_session=True).count(), 1)
+
+    def test_seventh_semester_can_be_configured_as_current(self):
+        session = Session.objects.create(session="2026")
+
+        response = self.client.post(
+            reverse("add_semester"),
+            {
+                "semester": "Seventh",
+                "is_current_semester": "True",
+                "session": session.pk,
+                "next_semester_begins": "2027-01-01",
+            },
+        )
+
+        self.assertRedirects(
+            response, reverse("semester_list"), fetch_redirect_response=False
+        )
+        semester = Semester.objects.get(semester="Seventh", session=session)
+        self.assertTrue(semester.is_current_semester)
 
     def test_delete_semester_requires_post(self):
         session = Session.objects.create(session="2026/2027")

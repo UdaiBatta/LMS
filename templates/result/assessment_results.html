@@ -7,15 +7,21 @@
 <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
   <ol class="breadcrumb">
       <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{% trans 'Assesment Results' %}</li>
+      <li class="breadcrumb-item active" aria-current="page">{% trans 'Assessment Results' %}</li>
   </ol>
 </nav>
 
 {% include 'snippets/messages.html' %}
 
-<div class="title-1"><i class="fa fa-spell-check"></i>{% trans 'Assesment Results' %}</div>
+<div class="title-1"><i class="fa fa-spell-check"></i>{% trans 'Assessment Results' %}</div>
 <p>{{ student.level }} {% trans 'Result' %}</p>
 
+{% if no_assessments_available %}
+<div class="alert alert-info" role="status">
+  <i class="fas fa-info-circle me-2" aria-hidden="true"></i>
+  {% trans 'No assessment records are available yet. Scores will appear here once they have been entered.' %}
+</div>
+{% else %}
 <div class="table-responsive p-0 px-2 mt-3">
   <div class="table-title"><u>{% trans 'First Semester:' %}</u></div>
   <table class="table table-light">
@@ -33,8 +39,7 @@
         <th>{% trans 'Total' %}</th>
       </tr>
     </thead>
-    {% for course in courses %}
-    {% if course.course.semester == "First" %}
+    {% for course in first_semester_courses %}
     <tbody>
       <tr class="{% if forloop.counter|divisibleby:2 %}bg-gray{% endif %}">
         <th scope="row">{{ forloop.counter }}</th>
@@ -53,7 +58,8 @@
         {% endif %}
       </tr>
     </tbody>
-    {% endif %}
+    {% empty %}
+      <tr><td colspan="10" class="text-center text-muted py-4">{% trans 'No first-semester assessment records are available.' %}</td></tr>
     {% endfor %}
   </table>
   </div>
@@ -75,8 +81,7 @@
         <th>{% trans 'Total' %}</th>
       </tr>
     </thead>
-    {% for course in courses %}
-    {% if course.course.semester == "Second" %}
+    {% for course in second_semester_courses %}
     <tbody>
       <tr>
         <th scope="row">{{ forloop.counter }}</th>
@@ -95,10 +100,12 @@
         {% endif %}
       </tr>
     </tbody>
-    {% endif %}
+    {% empty %}
+      <tr><td colspan="10" class="text-center text-muted py-4">{% trans 'No second-semester assessment records are available.' %}</td></tr>
     {% endfor %}
   </table>
 </div>
 
 <br>
+{% endif %}
 {% endblock %}

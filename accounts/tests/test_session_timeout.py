@@ -64,3 +64,21 @@ class SessionTimeoutTests(TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.json()["success"])
         self.assertGreater(self.client.session["last_activity"], original_activity)
+
+    def test_login_page_never_renders_or_enforces_session_monitoring(self):
+        self.set_last_activity(time.time() - 61)
+
+        response = self.client.get(reverse("login"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn("_auth_user_id", self.client.session)
+        self.assertNotContains(response, "sessionTimeoutModal")
+        self.assertNotContains(response, "session-status-float")
+
+    def test_authenticated_app_uses_the_compact_session_countdown(self):
+        response = self.client.get(reverse("home"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "session-countdown")
+        self.assertContains(response, "float-progress")
+        self.assertNotContains(response, "border-warning shadow-lg")

@@ -114,7 +114,7 @@ class CourseAllocation(models.Model):
     )
 
     def __str__(self):
-        return self.lecturer.get_full_name
+        return self.lecturer.get_full_name()
 
     def get_absolute_url(self):
         return reverse("edit_allocated_course", kwargs={"pk": self.pk})

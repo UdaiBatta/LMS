@@ -254,6 +254,9 @@ EMAIL_USE_TLS = config("EMAIL_USE_TLS", default=True, cast=bool)
 EMAIL_HOST_USER = config("EMAIL_HOST_USER")
 EMAIL_HOST_PASSWORD = config("EMAIL_HOST_PASSWORD")
 EMAIL_FROM_ADDRESS = config("EMAIL_FROM_ADDRESS")
+# Public enquiries can be routed separately from transactional email.
+# It falls back to the configured email account for small deployments.
+SKYLEARN_CONTACT_EMAIL = config("SKYLEARN_CONTACT_EMAIL", default=EMAIL_HOST_USER)
 EMAIL_USE_SSL = False
 
 # File-based email backend settings (for development)
@@ -342,9 +345,19 @@ LEVEL_CHOICES = (
 FIRST = "First"
 SECOND = "Second"
 THIRD = "Third"
+FOURTH = "Fourth"
+FIFTH = "Fifth"
+SIXTH = "Sixth"
+SEVENTH = "Seventh"
+EIGHTH = "Eighth"
 
 SEMESTER_CHOICES = (
     (FIRST, _("First")),
     (SECOND, _("Second")),
     (THIRD, _("Third")),
+    (FOURTH, _("Fourth")),
+    (FIFTH, _("Fifth")),
+    (SIXTH, _("Sixth")),
+    (SEVENTH, _("Seventh")),
+    (EIGHTH, _("Eighth")),
 )

@@ -13,34 +13,44 @@
     </ol>
 </nav>
 
-<p class="title-1"><i class="fas fa-user-edit"></i>{% trans 'Account Settings' %}</p>
-
 {% include 'snippets/messages.html' %}
 
-<form action="" method="POST" enctype="multipart/form-data">{% csrf_token %}
-    <div class="row mb-4">
-        <div class="col-md-6">
-            <div class="card">
-                <div class="form-title">{% trans 'Email' %} &amp; {% trans 'Personal Info' %}</div>
-                <div class="card-body">
-                    {{ form.email|as_crispy_field }}
-                    {{ form.first_name|as_crispy_field }}
-                    {{ form.last_name|as_crispy_field }}
-                    {{ form.gender|as_crispy_field }}
-                    {{ form.phone|as_crispy_field }}
-                    {{ form.address|as_crispy_field }}
-                </div>
-            </div>
+<div class="settings-page">
+    <header class="workflow-page-header">
+        <div>
+            <p class="workflow-eyebrow">{% trans 'Account' %}</p>
+            <h1><i class="fas fa-user-gear" aria-hidden="true"></i>{% trans 'Account settings' %}</h1>
+            <p>{% trans 'Keep your contact details and profile image up to date.' %}</p>
         </div>
-        <div class="col-md-6">
-            <div class="card">
-                <p class="form-title">{% trans 'Others' %}</p>
-                <div class="card-body">
-                    {{ form.picture|as_crispy_field }}
-                </div>
+    </header>
+
+    <form action="" method="POST" enctype="multipart/form-data" class="settings-layout">{% csrf_token %}
+        <aside class="settings-profile-card">
+            <img src="{{ request.user.get_picture }}" alt="{% trans 'Current profile picture' %}">
+            <div>
+                <p class="workflow-eyebrow">{% trans 'Your profile' %}</p>
+                <h2>{{ request.user.get_full_name|default:request.user.username }}</h2>
+                <p>{{ request.user.email }}</p>
             </div>
-        </div>
-    </div>
-    <button class="btn btn-primary" type="submit">{% trans 'Update Profile' %}</button>
-</form>
+            <label class="profile-upload-control" for="{{ form.picture.id_for_label }}">
+                <i class="fas fa-camera" aria-hidden="true"></i>{% trans 'Choose a new picture' %}
+            </label>
+            <div class="visually-hidden">{{ form.picture }}</div>
+            {% if form.picture.errors %}<div class="invalid-feedback d-block">{{ form.picture.errors }}</div>{% endif %}
+        </aside>
+
+        <section class="settings-form-card">
+            <div class="workflow-card-heading"><div><span>01</span><div><h2>{% trans 'Personal details' %}</h2><p>{% trans 'Information used across your SkyLearn account.' %}</p></div></div></div>
+            <div class="settings-field-grid">
+                <div class="settings-field settings-field-wide"><label for="{{ form.email.id_for_label }}">{{ form.email.label }}</label>{{ form.email }}{{ form.email.errors }}</div>
+                <div class="settings-field"><label for="{{ form.first_name.id_for_label }}">{{ form.first_name.label }}</label>{{ form.first_name }}{{ form.first_name.errors }}</div>
+                <div class="settings-field"><label for="{{ form.last_name.id_for_label }}">{{ form.last_name.label }}</label>{{ form.last_name }}{{ form.last_name.errors }}</div>
+                <div class="settings-field"><label for="{{ form.gender.id_for_label }}">{{ form.gender.label }}</label>{{ form.gender }}{{ form.gender.errors }}</div>
+                <div class="settings-field"><label for="{{ form.phone.id_for_label }}">{{ form.phone.label }}</label>{{ form.phone }}<small>{{ form.phone.help_text }}</small>{{ form.phone.errors }}</div>
+                <div class="settings-field settings-field-wide"><label for="{{ form.address.id_for_label }}">{{ form.address.label }}</label>{{ form.address }}{{ form.address.errors }}</div>
+            </div>
+            <div class="workflow-form-actions"><a class="btn btn-light" href="{% url 'profile' %}">{% trans 'Cancel' %}</a><button class="btn btn-primary" type="submit"><i class="fas fa-check" aria-hidden="true"></i>{% trans 'Save changes' %}</button></div>
+        </section>
+    </form>
+</div>
 {% endblock content %}

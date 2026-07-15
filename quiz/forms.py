@@ -39,6 +39,9 @@ class QuizAddForm(forms.ModelForm):
 
     def __init__(self, *args, course=None, **kwargs):
         super(QuizAddForm, self).__init__(*args, **kwargs)
+        for field_name in ("title", "category", "pass_mark", "description"):
+            self.fields[field_name].widget.attrs["class"] = "form-control"
+        self.fields["description"].widget.attrs.setdefault("rows", 7)
         if course is None:
             self.fields["questions"].queryset = Question.objects.none()
         else:
