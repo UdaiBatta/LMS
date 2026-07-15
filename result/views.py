@@ -217,14 +217,6 @@ def grade_result(request):
             semester=current_semester.semester
         ).order_by('session', 'semester')
         
-        if not courses.exists() and not results.exists():
-            context = {
-                'student': student,
-                'no_results_available': True,
-                'current_semester': current_semester,
-                'message': f'No completed semester results available. Current semester ({current_semester.semester}) is still active.'
-            }
-            return render(request, 'result/grade_results.html', context)
     else:
         # No current semester, show all results
         courses = TakenCourse.objects.filter(
@@ -262,8 +254,25 @@ def grade_result(request):
         if latest_result:
             previous_cgpa = latest_result.cgpa or 0
 
+    first_semester_courses = courses.filter(course__semester=settings.FIRST)
+    second_semester_courses = courses.filter(course__semester=settings.SECOND)
+    no_results_available = not (
+        first_semester_courses.exists()
+        or second_semester_courses.exists()
+        or results.exists()
+    )
+    if current_semester and no_results_available:
+        availability_message = (
+            f"No completed semester results are available yet. "
+            f"The current {current_semester.semester} semester is still active."
+        )
+    else:
+        availability_message = "No grade records are available yet."
+
     context = {
         "courses": courses,
+        "first_semester_courses": first_semester_courses,
+        "second_semester_courses": second_semester_courses,
         "results": results,
         "sorted_result": sorted_result_sessions,
         "student": student,
@@ -272,6 +281,8 @@ def grade_result(request):
         "previous_cgpa": previous_cgpa,
         "current_semester": current_semester,
         "total_first_and_second_semester_credit": total_first_semester_credit + total_second_semester_credit,
+        "no_results_available": no_results_available,
+        "availability_message": availability_message,
     }
 
     return render(request, "result/grade_results.html", context)
@@ -280,16 +291,23 @@ def grade_result(request):
 @login_required
 @student_required
 def assessment_result(request):
-    student = Student.objects.get(student__pk=request.user.id)
+    student = get_object_or_404(Student, student__pk=request.user.id)
     courses = TakenCourse.objects.filter(
-        student__student__pk=request.user.id, course__level=student.level
-    )
-    result = Result.objects.filter(student__student__pk=request.user.id)
+        student=student, course__level=student.level
+    ).select_related("course").order_by("course__semester", "course__title")
+    result = Result.objects.filter(student=student).order_by("session", "semester")
+    first_semester_courses = courses.filter(course__semester=settings.FIRST)
+    second_semester_courses = courses.filter(course__semester=settings.SECOND)
 
     context = {
         "courses": courses,
+        "first_semester_courses": first_semester_courses,
+        "second_semester_courses": second_semester_courses,
         "result": result,
         "student": student,
+        "no_assessments_available": not (
+            first_semester_courses.exists() or second_semester_courses.exists()
+        ),
     }
 
     return render(request, "result/assessment_results.html", context)
@@ -372,7 +390,7 @@ def result_sheet_pdf_view(request, id):
     normal.fontName = "Helvetica"
     normal.fontSize = 10
     normal.leading = 15
-    title = "<b>Course lecturer: " + request.user.get_full_name + "</b>"
+    title = "<b>Course lecturer: " + request.user.get_full_name() + "</b>"
     title = Paragraph(title.upper(), normal)
     Story.append(title)
     Story.append(Spacer(1, 0.1 * inch))
@@ -413,7 +431,7 @@ def result_sheet_pdf_view(request, id):
                 count + 1,
                 student.student.student.username.upper(),
                 Paragraph(
-                    student.student.student.get_full_name.capitalize(), styles["Normal"]
+                    student.student.student.get_full_name().capitalize(), styles["Normal"]
                 ),
                 student.total,
                 student.grade,
@@ -470,7 +488,11 @@ def result_sheet_pdf_view(request, id):
 @login_required
 @student_required
 def course_registration_form(request):
-    current_session = Session.objects.get(is_current_session=True)
+    current_session = Session.objects.filter(is_current_session=True).first()
+    if current_session is None:
+        messages.error(request, "Course registration form is unavailable because no session is active.")
+        return HttpResponseRedirect(reverse_lazy("user_course_list"))
+    student = get_object_or_404(Student, student__pk=request.user.id)
     courses = TakenCourse.objects.filter(student__student__id=request.user.id)
     fname = request.user.username + ".pdf"
     fname = fname.replace("/", "-")
@@ -525,7 +547,7 @@ def course_registration_form(request):
     title = "<b><u>STUDENT COURSE REGISTRATION FORM</u></b>"
     title = Paragraph(title.upper(), normal)
     Story.append(title)
-    student = Student.objects.get(student__pk=request.user.id)
+    student_name = request.user.get_full_name().upper()
 
     tbl_data = [
         [
@@ -536,7 +558,7 @@ def course_registration_form(request):
         ],
         [
             Paragraph(
-                "<b>Name : " + request.user.get_full_name.upper() + "</b>",
+                "<b>Name : " + student_name + "</b>",
                 styles["Normal"],
             )
         ],
@@ -734,10 +756,9 @@ def course_registration_form(request):
     certification.fontName = "Helvetica"
     certification.fontSize = 8
     certification.leading = 18
-    student = Student.objects.get(student__pk=request.user.id)
     certification_text = (
         "CERTIFICATION OF REGISTRATION: I certify that <b>"
-        + str(request.user.get_full_name.upper())
+        + student_name
         + "</b>\
     has been duly registered for the <b>"
         + student.level

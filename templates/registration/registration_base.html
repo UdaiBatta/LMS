@@ -5,3 +5,9 @@
 {% block maincontent %}
   {% block content %}{% endblock content %}
 {% endblock %}
+
+{% block session_timeout_monitoring %}
+<script type="text/javascript">
+  window.userAuthenticated = false;
+</script>
+{% endblock session_timeout_monitoring %}

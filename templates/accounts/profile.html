@@ -1,116 +1,96 @@
 {% extends 'base.html' %}
 {% load i18n %}
-{% block title %} {{ title }} | {% trans 'Learning management system' %}{% endblock title %}
-
-{% load static %}
-
+{% block title %}{{ title }} | {% trans 'Learning management system' %}{% endblock title %}
 
 {% block content %}
-
 {% if user.is_authenticated %}
+<main class="account-profile-page">
+    <nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item"><a href="{% url 'home' %}">{% trans 'Home' %}</a></li>
+            <li class="breadcrumb-item active" aria-current="page">{% trans 'My profile' %}</li>
+        </ol>
+    </nav>
 
-<nav style="--bs-breadcrumb-divider: '>';" aria-label="breadcrumb">
-    <ol class="breadcrumb">
-      <li class="breadcrumb-item"><a href="/">{% trans 'Home' %}</a></li>
-      <li class="breadcrumb-item active" aria-current="page">{{ user.get_full_name }}</li>
-    </ol>
-</nav>
+    {% include 'snippets/messages.html' %}
 
-{% include 'snippets/messages.html' %}
-
-<div class="row">
-
-    <div class="col-md-3 mx-auto">
-        <div class="card  p-2">
-            <div class="text-center">
-                <img src="{{ user.picture.url }}" class="w-100">
-                <ul class="px-2 list-unstyled">
-                    <li>{{ user.get_full_name|title }}</li>
-                    <li><strong>{% trans 'Last login:' %} </strong>{{ user.last_login|date }}</li>
-                    <li><strong>{% trans 'Role:' %} </strong>
-                        {{ user.get_user_role }}
-                    </li>
-                </ul>
-            </div>
-            <hr>
-            <a class="mb-2" href="{% url 'edit_profile' %}"><i class="fas fa-user-edit unstyled"></i>
-                <span class="mobile-hide">{% trans 'Edit Profile' %}</span></a>
-            <a href="{% url 'change_password' %}"><i class="fas fa-lock unstyled"></i><span class="mobile-hide">
-                {% trans 'Change password' %}</span></a>
+    <header class="workflow-page-header profile-page-header">
+        <div>
+            <p class="workflow-eyebrow">{% trans 'Account overview' %}</p>
+            <h1><i class="fas fa-user-circle" aria-hidden="true"></i>{% trans 'Your profile' %}</h1>
+            <p>{% trans 'Your identity, contact details, and account activity in one place.' %}</p>
         </div>
-    </div>
+        <span class="profile-role-chip"><i class="fas fa-shield-alt" aria-hidden="true"></i>{{ user.get_user_role }}</span>
+    </header>
 
-    <div class="col-md-9 mx-auto">
-        <div class="card">
-            <div class="card-body">
-                <!-- {% if user.is_student %}
-                <p class="form-title"><i class="fas fa-book-open"></i>Enrolled Courses</p>
-                <div class="dashboard-description">
-                    {% if courses %}
-                        <div class="flex">
-                            {% for course in courses %}
-                                <div class="flex"><a class="edit-btn" href="{{ course.get_absolute_url }}">{{ course }}</a></div>
-                            {% endfor %}
-                        </div>
-                    {% else %}
-                            <div class="text-danger"><i class="far fa-frown"></i>No courses!</div>
-                    {% endif %}
+    <div class="profile-overview-layout">
+        <aside class="profile-identity-card">
+            <div class="profile-identity-cover" aria-hidden="true"></div>
+            <div class="profile-avatar-wrap">
+                <img src="{{ user.get_picture }}" alt="{% trans 'Profile picture for' %} {{ user.get_full_name }}">
+            </div>
+            <div class="profile-identity-copy">
+                <h2>{{ user.get_full_name|title }}</h2>
+                <p>@{{ user.username }}</p>
+                <span>{{ user.get_user_role }}</span>
+            </div>
+            <dl class="profile-identity-meta">
+                <div><dt>{% trans 'Email' %}</dt><dd>{{ user.email }}</dd></div>
+                <div><dt>{% trans 'Last sign-in' %}</dt><dd>{{ user.last_login|date:"M d, Y · g:i a"|default:"—" }}</dd></div>
+            </dl>
+            <div class="profile-identity-actions">
+                <a class="btn btn-primary" href="{% url 'edit_profile' %}"><i class="fas fa-pen" aria-hidden="true"></i>{% trans 'Edit profile' %}</a>
+                <a class="btn btn-outline-primary" href="{% url 'change_password' %}"><i class="fas fa-key" aria-hidden="true"></i>{% trans 'Change password' %}</a>
+            </div>
+        </aside>
+
+        <section class="profile-details-card">
+            <div class="profile-details-intro">
+                <div>
+                    <p class="workflow-eyebrow">{% trans 'Profile details' %}</p>
+                    <h2>{% trans 'The essentials, clearly organised.' %}</h2>
                 </div>
-                {% endif %} -->
-    
+                <a href="{% url 'edit_profile' %}">{% trans 'Update information' %}<i class="fas fa-arrow-right" aria-hidden="true"></i></a>
+            </div>
+
+            <div class="profile-detail-grid">
+                <section class="profile-detail-section">
+                    <header><span><i class="fas fa-id-card" aria-hidden="true"></i></span><div><h3>{% trans 'Personal information' %}</h3><p>{% trans 'How you appear across SkyLearn.' %}</p></div></header>
+                    <dl class="profile-data-list">
+                        <div><dt>{% trans 'First name' %}</dt><dd>{{ user.first_name|default:"—"|title }}</dd></div>
+                        <div><dt>{% trans 'Last name' %}</dt><dd>{{ user.last_name|default:"—"|title }}</dd></div>
+                        <div><dt>{% trans 'Account ID' %}</dt><dd>{{ user.username }}</dd></div>
+                        <div><dt>{% trans 'Role' %}</dt><dd>{{ user.get_user_role }}</dd></div>
+                    </dl>
+                </section>
+
+                <section class="profile-detail-section">
+                    <header><span><i class="fas fa-address-book" aria-hidden="true"></i></span><div><h3>{% trans 'Contact information' %}</h3><p>{% trans 'Private account contact details.' %}</p></div></header>
+                    <dl class="profile-data-list">
+                        <div class="profile-data-wide"><dt>{% trans 'Email address' %}</dt><dd>{{ user.email }}</dd></div>
+                        <div><dt>{% trans 'Phone number' %}</dt><dd>{{ user.phone|default:"—" }}</dd></div>
+                        <div><dt>{% trans 'Address / city' %}</dt><dd>{{ user.address|default:"—" }}</dd></div>
+                    </dl>
+                </section>
+
+                <section class="profile-detail-section profile-detail-section-wide">
+                    <header><span><i class="fas fa-calendar-check" aria-hidden="true"></i></span><div><h3>{% trans 'Account activity' %}</h3><p>{% trans 'Key dates and the active academic context.' %}</p></div></header>
+                    <dl class="profile-data-list profile-activity-list">
+                        <div><dt>{% trans 'Registered' %}</dt><dd>{{ user.date_joined|date:"M d, Y" }}</dd></div>
+                        <div><dt>{% trans 'Last sign-in' %}</dt><dd>{{ user.last_login|date:"M d, Y · g:i a"|default:"—" }}</dd></div>
+                        {% if current_semester and current_session %}<div><dt>{% trans 'Current period' %}</dt><dd>{{ current_semester }} {% trans 'Semester' %} {{ current_session }}</dd></div>{% endif %}
+                    </dl>
+                </section>
+
                 {% if user.is_lecturer %}
-                <p class="fw-bold"><i class="fas fa-book-open"></i> {% trans 'My Courses' %}</p>
-                {% if courses %}
-                <ul>
-                    {% for course in courses %}
-                    <li><a href="{{ course.get_absolute_url }}" class="text-primary">{{ course }}</a></li>
-                    {% endfor %}
-                </ul>
-                {% else %}
-                <div class="text-danger">{% trans 'No courses assigned!' %}</div>
+                <section class="profile-detail-section profile-detail-section-wide profile-courses-section">
+                    <header><span><i class="fas fa-book-open" aria-hidden="true"></i></span><div><h3>{% trans 'Current teaching' %}</h3><p>{% trans 'Courses allocated for the active academic period.' %}</p></div></header>
+                    {% if courses %}<ul>{% for course in courses %}<li><a href="{{ course.get_absolute_url }}">{{ course }}</a></li>{% endfor %}</ul>{% else %}<p class="profile-empty-state">{% trans 'No courses are currently allocated to this account.' %}</p>{% endif %}
+                </section>
                 {% endif %}
-                <hr>
-                {% endif %}
-    
-                <p class="fw-bold"><i class="me-2 fas fa-user"></i>{% trans 'Personal Info' %}</p>
-                <div class="dashboard-description">
-                    <p><strong>{% trans 'First Name:' %}</strong> {{ user.first_name|title }}</p>
-                    <p><strong>{% trans 'Last Name:' %}</strong> {{ user.last_name|title }}</p>
-                    <p><strong>{% trans 'ID No.:' %}</strong> {{ user.username }}</p>
-                </div>
-                {% if user.is_student %}
-                <hr>
-                <p class="fw-bold"><i class="me-2 fas fa-graduation-cap"></i>{% trans 'Applicant Info' %}</p>
-                <div class="dashboard-description">
-                    <p><strong>{% trans 'School:' %} </strong>{{ school_name }}</p>
-                    <p><strong>{% trans 'Level:' %} </strong>{{ level.level }}</p>
-                </div>
-                {% endif %}
-    
-                <hr>
-                <p class="fw-bold"><i class="me-2 fas fa-phone-square-alt"></i>{% trans 'Contact Info' %}</p>
-                <div class="dashboard-description">
-                    <p><strong>{% trans 'Email:' %}</strong> {{ user.email }}</p>
-                    <p><strong>{% trans 'Tel No.:' %}</strong> {{ user.phone }}</p>
-                    <p><strong>{% trans 'Address/city:' %}</strong> {{ user.address }}</p>
-                </div>
-    
-                <hr>
-                <p class="fw-bold"><i class="me-2 fa fa-calendar-day"></i>{% trans 'Important Dates' %}</p>
-                <div class="dashboard-description">
-                    <p><strong>{% trans 'Last login:' %}</strong> {{ user.last_login }}</p>
-                    {% if current_semester and current_session %}
-                    <p><strong>{% trans 'Academic Year:' %}</strong> {{ current_semester }} {% trans 'Semester' %} {{ current_session }}</p>
-                    {% endif %}
-                    <p><strong>{% trans 'Registered Date:' %}</strong> {{ user.date_joined|date }}</p>
-                </div>
             </div>
-        </div>
+        </section>
     </div>
-
-    <div class="col-md-3 mx-auto"></div>
-
-</div>
+</main>
 {% endif %}
-
 {% endblock content %}

@@ -2,6 +2,7 @@ from django.shortcuts import render, redirect, get_object_or_404
 from django.contrib import messages
 from django.contrib.auth.decorators import login_required
 from django.http import HttpResponseNotAllowed
+from django.conf import settings
 
 from accounts.decorators import admin_required
 from accounts.models import User, Student
@@ -16,7 +17,11 @@ def landing_view(request):
     """Public product overview; authenticated users continue into the app."""
     if request.user.is_authenticated:
         return redirect("home")
-    return render(request, "core/landing.html")
+    return render(
+        request,
+        "core/landing.html",
+        {"contact_email": settings.SKYLEARN_CONTACT_EMAIL},
+    )
 
 
 @login_required

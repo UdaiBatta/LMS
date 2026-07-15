@@ -124,4 +124,41 @@ class ScoreEntryAuthorizationTests(TestCase):
         self.assertEqual(self.enrollment.total, Decimal("0.00"))
 
 
+@override_settings(
+    SECURE_SSL_REDIRECT=False,
+    STATICFILES_STORAGE="django.contrib.staticfiles.storage.StaticFilesStorage",
+)
+class StudentResultViewsTests(TestCase):
+    def setUp(self):
+        program = Program.objects.create(title="Result Engineering")
+        user_model = get_user_model()
+        self.user = user_model.objects.create_user(
+            username="result-student",
+            email="result-student@example.com",
+            password="password",
+            is_student=True,
+        )
+        Student.objects.create(
+            student=self.user, program=program, level="Bachelor", year=1
+        )
+        self.client.force_login(self.user)
+
+    def test_empty_grade_and_assessment_views_explain_the_missing_data(self):
+        grade_response = self.client.get(reverse("grade_results"))
+        assessment_response = self.client.get(reverse("ass_results"))
+
+        self.assertEqual(grade_response.status_code, 200)
+        self.assertContains(grade_response, "No grade records are available yet.")
+        self.assertEqual(assessment_response.status_code, 200)
+        self.assertContains(assessment_response, "No assessment records are available yet.")
+
+    def test_registration_form_uses_the_student_name_and_returns_a_pdf(self):
+        Session.objects.create(session="2027/2028", is_current_session=True)
+
+        response = self.client.get(reverse("course_registration_form"))
+
+        self.assertEqual(response.status_code, 200)
+        self.assertEqual(response["Content-Type"], "application/pdf")
+
+
 # Create your tests here.

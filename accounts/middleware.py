@@ -27,6 +27,13 @@ class SessionTimeoutMiddleware(MiddlewareMixin):
         if not request.user.is_authenticated:
             return None
 
+        # The login view is a public route, even when an existing session is
+        # still authenticated. It must never start or enforce a countdown;
+        # otherwise an expired session can show its timeout UI over the sign-in
+        # page and immediately log the visitor out again.
+        if request.path == reverse("login"):
+            return None
+
         # Status polling must observe inactivity without becoming activity
         # itself. Explicit extension is handled by the endpoint.
         is_timeout_check = request.path == reverse("session_timeout_check")
@@ -69,7 +76,8 @@ class SessionTimeoutMiddleware(MiddlewareMixin):
         """
         if (
             request.user.is_authenticated
-            and request.path != reverse("session_timeout_check")
+            and request.path
+            not in {reverse("session_timeout_check"), reverse("login")}
         ):
             request.session['last_activity'] = time.time()
         return response

@@ -123,7 +123,7 @@ def profile(request):
     ).first()
 
     context = {
-        "title": request.user.get_full_name,
+        "title": request.user.get_full_name(),
         "current_session": current_session,
         "current_semester": current_semester,
         "school_name": settings.SCHOOL_NAME,
@@ -171,7 +171,7 @@ def profile_single(request, user_id):
     user = get_object_or_404(User, pk=user_id)
 
     context = {
-        "title": user.get_full_name,
+        "title": user.get_full_name(),
         "user": user,
         "current_session": current_session,
         "current_semester": current_semester,
@@ -246,6 +246,15 @@ def change_password(request):
         messages.error(request, "Please correct the error(s) below.")
     else:
         form = PasswordChangeForm(request.user)
+
+    # The password form is rendered field-by-field so its validation feedback
+    # remains visible in the security-focused account settings screen.
+    for field_name, field in form.fields.items():
+        field.widget.attrs["class"] = "form-control"
+        field.widget.attrs["autocomplete"] = (
+            "current-password" if field_name == "old_password" else "new-password"
+        )
+
     return render(request, "setting/password_change.html", {"form": form})
 
 
@@ -261,7 +270,7 @@ def staff_add_view(request):
         form = StaffAddForm(request.POST)
         if form.is_valid():
             lecturer = form.save()
-            full_name = lecturer.get_full_name
+            full_name = lecturer.get_full_name()
             email = lecturer.email
             messages.success(
                 request,
@@ -284,7 +293,7 @@ def edit_staff(request, pk):
         form = ProfileUpdateForm(request.POST, request.FILES, instance=lecturer)
         if form.is_valid():
             form.save()
-            full_name = lecturer.get_full_name
+            full_name = lecturer.get_full_name()
             messages.success(request, f"Lecturer {full_name} has been updated.")
             return redirect("lecturer_list")
         messages.error(request, "Please correct the error below.")
@@ -330,7 +339,7 @@ def delete_staff(request, pk):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
     lecturer = get_object_or_404(User, is_lecturer=True, pk=pk)
-    full_name = lecturer.get_full_name
+    full_name = lecturer.get_full_name()
     lecturer.delete()
     messages.success(request, f"Lecturer {full_name} has been deleted.")
     return redirect("lecturer_list")
@@ -349,7 +358,7 @@ def student_add_view(request):
         if form.is_valid():
             student = form.save()
             request.session["new_student_credentials_id"] = student.pk
-            full_name = student.get_full_name
+            full_name = student.get_full_name()
             email = student.email
             
             # The signal will handle credential generation and email sending
@@ -419,12 +428,12 @@ def reset_student_password(request, pk):
         request.session['reset_student_credentials'] = {
             'username': student_user.username,
             'password': new_password,
-            'student_name': student_user.get_full_name,
+            'student_name': student_user.get_full_name(),
             'student_email': student_user.email,
             'email_status': 'not_sent'
         }
         
-        messages.success(request, f"Password reset for {student_user.get_full_name}")
+        messages.success(request, f"Password reset for {student_user.get_full_name()}")
         return redirect("student_credentials")
     
     return render(
@@ -445,7 +454,7 @@ def edit_student(request, pk):
         form = ProfileUpdateForm(request.POST, request.FILES, instance=student_user)
         if form.is_valid():
             form.save()
-            full_name = student_user.get_full_name
+            full_name = student_user.get_full_name()
             messages.success(request, f"Student {full_name} has been updated.")
             return redirect("student_list")
         messages.error(request, "Please correct the error below.")
@@ -491,7 +500,7 @@ def delete_student(request, pk):
     if request.method != "POST":
         return HttpResponseNotAllowed(["POST"])
     student = get_object_or_404(Student, pk=pk)
-    full_name = student.student.get_full_name
+    full_name = student.student.get_full_name()
     student.delete()
     messages.success(request, f"Student {full_name} has been deleted.")
     return redirect("student_list")
@@ -506,7 +515,7 @@ def edit_student_program(request, pk):
         form = ProgramUpdateForm(request.POST, request.FILES, instance=student)
         if form.is_valid():
             form.save()
-            full_name = user.get_full_name
+            full_name = user.get_full_name()
             messages.success(request, f"{full_name}'s program has been updated.")
             return redirect("profile_single", user_id=pk)
         messages.error(request, "Please correct the error(s) below.")

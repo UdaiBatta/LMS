@@ -367,9 +367,14 @@ class QuizMarkingDetail(DetailView):
         sitting = self.get_object()
         question_id = request.POST.get("qid")
         if question_id:
+            # ``select_subclasses`` returns the concrete question type (for
+            # example MCQuestion or EssayQuestion). Calling ``get_subclass``
+            # on the plain Question instance caused marking to crash.
             question = get_object_or_404(
-                Question.objects, id=int(question_id), quiz=sitting.quiz
-            ).get_subclass()
+                Question.objects.select_subclasses(),
+                id=int(question_id),
+                quiz=sitting.quiz,
+            )
             if int(question_id) in sitting.get_incorrect_questions:
                 sitting.remove_incorrect_question(question)
             else:

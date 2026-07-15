@@ -148,6 +148,18 @@ class CourseAuthorizationTests(TestCase):
 
         self.assertEqual(response.status_code, 403)
 
+    def test_course_detail_uses_real_lecturer_information_without_placeholder_links(self):
+        self.client.force_login(self.lecturer)
+
+        response = self.client.get(
+            reverse("course_detail", kwargs={"slug": self.course.slug})
+        )
+
+        self.assertEqual(response.status_code, 200)
+        self.assertContains(response, "Course lecturer")
+        self.assertNotContains(response, "Donec sed odio dui")
+        self.assertNotContains(response, "fab fa-twitter")
+
     def test_quiz_update_cannot_move_quiz_to_another_course(self):
         quiz = Quiz.objects.create(course=self.course, title="Owned")
         self.client.force_login(self.lecturer)

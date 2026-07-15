@@ -288,15 +288,12 @@
                         {% endif %}
                         <h5 class="fw-bold mb-0">{{ lecturer.lecturer.get_full_name|title }}</h5>
                         <p class="mb-0">{{ lecturer.lecturer.email }}</p>
-                        <p class="text-muted small">Donec sed odio dui. Etiam porta sem malesuada magna mollis euismod.</p>
-                        <p>
-                            <a class="btn btn-sm btn-secondary" href="#" role="button"><i
-                                    class="fab fa-twitter"></i></a>
-                            <a class="btn btn-sm btn-secondary" href="#" role="button"><i
-                                    class="fab fa-facebook-f"></i></a>
-                            <a class="btn btn-sm btn-secondary" href="#" role="button"><i
-                                    class="fab fa-linkedin-in"></i></a>
-                        </p>
+                        <p class="text-muted small mb-3">{% trans 'Course lecturer' %}</p>
+                        {% if request.user.is_superuser %}
+                        <a class="btn btn-sm btn-outline-primary" href="{{ lecturer.lecturer.get_absolute_url }}">
+                            <i class="fas fa-user me-1" aria-hidden="true"></i>{% trans 'View profile' %}
+                        </a>
+                        {% endif %}
                     </div>
                 </div>
             </div>
